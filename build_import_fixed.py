@@ -261,7 +261,7 @@ def build_import_fixed():
         '--noconfirm',
         '--onedir',  # 使用目录模式便于调试
         '--windowed',  # 无控制台窗口
-        '--name', 'PDF发票拼版打印系统-导入修复版',
+        '--name', 'invoice_pretty',
         '--osx-bundle-identifier', 'com.pdfinvoicelayout.import.fixed',
         
         # 添加整个src目录
@@ -321,9 +321,9 @@ def create_import_fixed_dmg():
     """创建导入修复版DMG"""
     print("📦 创建导入修复版DMG...")
     
-    app_path = Path("dist/PDF发票拼版打印系统-导入修复版.app")
+    app_path = Path("dist/invoice_pretty.app")
     if not app_path.exists():
-        print("❌ 找不到导入修复版应用程序")
+        print("❌ 找不到应用程序")
         return False
     
     # 创建临时目录
@@ -340,36 +340,36 @@ def create_import_fixed_dmg():
         (temp_dir / "Applications").symlink_to("/Applications")
         
         # 创建说明文件
-        readme_content = """PDF发票拼版打印系统 - 导入修复版
+        readme_content = """PDF Invoice Layout System
 
-这个版本专门修复了PyInstaller打包后的模块导入问题。
+This version fixes PyInstaller module import issues.
 
-特点:
-- 智能模块导入，尝试多种导入方式
-- 详细的启动日志，便于问题诊断
-- 如果GUI导入失败，会显示简化界面
-- 自动保存错误日志到桌面
+Features:
+- Smart module importing with multiple fallback methods
+- Detailed startup logs for troubleshooting
+- Simplified interface if GUI import fails
+- Automatic error log saving to desktop
 
-安装方法:
-1. 将应用程序拖拽到Applications文件夹
-2. 右键点击应用程序，选择"打开"
-3. 在安全提示中点击"打开"
+Installation:
+1. Drag the application to Applications folder
+2. Right-click the application and select "Open"
+3. Click "Open" in the security prompt
 
-如果仍有问题:
-1. 查看桌面上的错误日志文件
-2. 使用命令行版本: python cli_main.py input.pdf -o output.pdf
-3. 运行故障排除工具: python fix_macos_app.py
+If issues persist:
+1. Check error log file on desktop
+2. Use command line version: python cli_main.py input.pdf -o output.pdf
+3. Run troubleshooting tool: python fix_macos_app.py
 """
         
-        readme_path = temp_dir / "使用说明.txt"
+        readme_path = temp_dir / "README.txt"
         with open(readme_path, 'w', encoding='utf-8') as f:
             f.write(readme_content)
         
         # 创建DMG
-        dmg_path = "dist/PDF发票拼版打印系统-导入修复版.dmg"
+        dmg_path = "dist/invoice_pretty.dmg"
         cmd = [
             'hdiutil', 'create',
-            '-volname', 'PDF发票拼版打印系统-导入修复版',
+            '-volname', 'Invoice Pretty',
             '-srcfolder', str(temp_dir),
             '-ov',
             '-format', 'UDZO',

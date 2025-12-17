@@ -5,12 +5,12 @@
 当你推送版本标签后，GitHub Actions会自动构建并发布以下文件到GitHub Release：
 
 ### Windows版本
-- **`PDF发票拼版打印系统.exe`** - 单文件可执行程序，双击即可运行
-- **`PDF发票拼版打印系统-便携版.zip`** - 绿色便携版，解压即用
+- **`invoice_pretty.exe`** - 单文件可执行程序，双击即可运行
+- **`invoice_pretty_portable.zip`** - 绿色便携版，解压即用
 
 ### macOS版本  
-- **`PDF发票拼版打印系统-intel.dmg`** - Intel Mac (x86_64) 安装包
-- **`PDF发票拼版打印系统-arm64.dmg`** - Apple Silicon Mac (M1/M2) 安装包
+- **`invoice_pretty_intel.dmg`** - Intel Mac (x86_64) 安装包
+- **`invoice_pretty_arm64.dmg`** - Apple Silicon Mac (M1/M2) 安装包
 
 ## 🚀 发布步骤
 

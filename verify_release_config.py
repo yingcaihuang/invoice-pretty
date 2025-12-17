@@ -41,10 +41,10 @@ def verify_github_actions_config():
     
     files_content = files_section.group(1)
     expected_files = [
-        'PDF发票拼版打印系统.exe',
-        'PDF发票拼版打印系统-便携版.zip',
-        'PDF发票拼版打印系统-intel.dmg', 
-        'PDF发票拼版打印系统-arm64.dmg'
+        'invoice_pretty.exe',
+        'invoice_pretty_portable.zip',
+        'invoice_pretty_intel.dmg', 
+        'invoice_pretty_arm64.dmg'
     ]
     
     print("\n📦 检查上传文件配置:")
@@ -83,7 +83,7 @@ def verify_github_actions_config():
         return False
     
     # 检查文件重命名
-    if 'PDF发票拼版打印系统-intel.dmg' in content and 'PDF发票拼版打印系统-arm64.dmg' in content:
+    if 'invoice_pretty_intel.dmg' in content and 'invoice_pretty_arm64.dmg' in content:
         print("  ✅ macOS文件重命名配置")
     else:
         print("  ❌ 缺少macOS文件重命名配置")
@@ -172,10 +172,10 @@ def show_release_summary():
     
     print("\n📦 自动发布的文件:")
     files = [
-        ("Windows EXE", "PDF发票拼版打印系统.exe"),
-        ("Windows 便携版", "PDF发票拼版打印系统-便携版.zip"),
-        ("macOS Intel", "PDF发票拼版打印系统-intel.dmg"),
-        ("macOS ARM64", "PDF发票拼版打印系统-arm64.dmg")
+        ("Windows EXE", "invoice_pretty.exe"),
+        ("Windows 便携版", "invoice_pretty_portable.zip"),
+        ("macOS Intel", "invoice_pretty_intel.dmg"),
+        ("macOS ARM64", "invoice_pretty_arm64.dmg")
     ]
     
     for platform, filename in files:

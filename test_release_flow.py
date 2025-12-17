@@ -51,10 +51,10 @@ def test_github_actions_config():
         if create_release_step:
             files = create_release_step.get('with', {}).get('files', '')
             expected_files = [
-                'PDF发票拼版打印系统.exe',
-                'PDF发票拼版打印系统-便携版.zip', 
-                'PDF发票拼版打印系统-intel.dmg',
-                'PDF发票拼版打印系统-arm64.dmg'
+                'invoice_pretty.exe',
+                'invoice_pretty_portable.zip', 
+                'invoice_pretty_intel.dmg',
+                'invoice_pretty_arm64.dmg'
             ]
             
             for expected_file in expected_files:
@@ -143,12 +143,12 @@ def simulate_release_files():
     dist_dir.mkdir()
     
     # 模拟Windows文件
-    (dist_dir / 'PDF发票拼版打印系统.exe').touch()
-    (dist_dir / 'PDF发票拼版打印系统-便携版.zip').touch()
+    (dist_dir / 'invoice_pretty.exe').touch()
+    (dist_dir / 'invoice_pretty_portable.zip').touch()
     
     # 模拟macOS文件
-    (dist_dir / 'PDF发票拼版打印系统-intel.dmg').touch()
-    (dist_dir / 'PDF发票拼版打印系统-arm64.dmg').touch()
+    (dist_dir / 'invoice_pretty_intel.dmg').touch()
+    (dist_dir / 'invoice_pretty_arm64.dmg').touch()
     
     print("✅ 模拟文件结构创建完成:")
     for file_path in dist_dir.iterdir():
@@ -167,10 +167,10 @@ def generate_release_summary():
     
     print("\n🎯 支持的发布文件:")
     files = [
-        ("Windows EXE", "PDF发票拼版打印系统.exe", "单文件可执行程序"),
-        ("Windows 便携版", "PDF发票拼版打印系统-便携版.zip", "绿色便携版ZIP包"),
-        ("macOS Intel", "PDF发票拼版打印系统-intel.dmg", "Intel Mac安装包"),
-        ("macOS ARM64", "PDF发票拼版打印系统-arm64.dmg", "Apple Silicon Mac安装包")
+        ("Windows EXE", "invoice_pretty.exe", "单文件可执行程序"),
+        ("Windows 便携版", "invoice_pretty_portable.zip", "绿色便携版ZIP包"),
+        ("macOS Intel", "invoice_pretty_intel.dmg", "Intel Mac安装包"),
+        ("macOS ARM64", "invoice_pretty_arm64.dmg", "Apple Silicon Mac安装包")
     ]
     
     for platform, filename, description in files:

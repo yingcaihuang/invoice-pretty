@@ -55,8 +55,8 @@ jobs:
       with:
         name: windows-build
         path: |
-          dist/PDF发票拼版打印系统.exe
-          dist/PDF发票拼版打印系统-便携版.zip
+          dist/invoice_pretty.exe
+          dist/invoice_pretty_portable.zip
         retention-days: 30
 
   # macOS Intel (x86_64) 构建作业
@@ -97,11 +97,11 @@ jobs:
     - name: Rename artifacts for Intel
       run: |
         cd dist
-        if [ -f "PDF发票拼版打印系统-导入修复版.dmg" ]; then
-          mv "PDF发票拼版打印系统-导入修复版.dmg" "PDF发票拼版打印系统-intel.dmg"
+        if [ -f "invoice_pretty.dmg" ]; then
+          mv "invoice_pretty.dmg" "invoice_pretty_intel.dmg"
         fi
-        if [ -d "PDF发票拼版打印系统-导入修复版.app" ]; then
-          mv "PDF发票拼版打印系统-导入修复版.app" "PDF发票拼版打印系统-intel.app"
+        if [ -d "invoice_pretty.app" ]; then
+          mv "invoice_pretty.app" "invoice_pretty_intel.app"
         fi
     
     - name: Upload macOS Intel artifacts
@@ -109,8 +109,8 @@ jobs:
       with:
         name: macos-intel-build
         path: |
-          dist/PDF发票拼版打印系统-intel.dmg
-          dist/PDF发票拼版打印系统-intel.app
+          dist/invoice_pretty_intel.dmg
+          dist/invoice_pretty_intel.app
         retention-days: 30
 
   # macOS Apple Silicon (ARM64) 构建作业
@@ -151,11 +151,11 @@ jobs:
     - name: Rename artifacts for ARM64
       run: |
         cd dist
-        if [ -f "PDF发票拼版打印系统-导入修复版.dmg" ]; then
-          mv "PDF发票拼版打印系统-导入修复版.dmg" "PDF发票拼版打印系统-arm64.dmg"
+        if [ -f "invoice_pretty.dmg" ]; then
+          mv "invoice_pretty.dmg" "invoice_pretty_arm64.dmg"
         fi
-        if [ -d "PDF发票拼版打印系统-导入修复版.app" ]; then
-          mv "PDF发票拼版打印系统-导入修复版.app" "PDF发票拼版打印系统-arm64.app"
+        if [ -d "invoice_pretty.app" ]; then
+          mv "invoice_pretty.app" "invoice_pretty_arm64.app"
         fi
     
     - name: Upload macOS ARM64 artifacts
@@ -163,8 +163,8 @@ jobs:
       with:
         name: macos-arm64-build
         path: |
-          dist/PDF发票拼版打印系统-arm64.dmg
-          dist/PDF发票拼版打印系统-arm64.app
+          dist/invoice_pretty_arm64.dmg
+          dist/invoice_pretty_arm64.app
         retention-days: 30
 
   # 创建GitHub Release
@@ -206,12 +206,12 @@ jobs:
         ## 📦 下载说明
         
         ### Windows用户
-        - **PDF发票拼版打印系统.exe** - 单文件可执行程序，双击即可运行
-        - **PDF发票拼版打印系统-便携版.zip** - 绿色便携版，解压即用
+        - **invoice_pretty.exe** - 单文件可执行程序，双击即可运行
+        - **invoice_pretty_portable.zip** - 绿色便携版，解压即用
         
         ### macOS用户
-        - **PDF发票拼版打印系统-intel.dmg** - Intel Mac (x86_64) 安装包
-        - **PDF发票拼版打印系统-arm64.dmg** - Apple Silicon Mac (M1/M2) 安装包
+        - **invoice_pretty_intel.dmg** - Intel Mac (x86_64) 安装包
+        - **invoice_pretty_arm64.dmg** - Apple Silicon Mac (M1/M2) 安装包
         
         ## ✨ 主要功能
         
@@ -268,8 +268,8 @@ jobs:
         draft: false
         prerelease: false
         files: |
-          ./windows-build/PDF发票拼版打印系统.exe
-          ./windows-build/PDF发票拼版打印系统-便携版.zip
-          ./macos-intel-build/PDF发票拼版打印系统-intel.dmg
-          ./macos-arm64-build/PDF发票拼版打印系统-arm64.dmg
+          ./windows-build/invoice_pretty.exe
+          ./windows-build/invoice_pretty_portable.zip
+          ./macos-intel-build/invoice_pretty_intel.dmg
+          ./macos-arm64-build/invoice_pretty_arm64.dmg
         fail_on_unmatched_files: false

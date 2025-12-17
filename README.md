@@ -2,13 +2,29 @@
 
 专门用于处理12306电子发票PDF文件的批量拼版打印工具。
 
+## 📸 系统截图
+
+### 主界面
+![系统主界面](img/assets/img1.png)
+
+### 处理界面
+![处理界面](img/assets/img2.png)
+
 ## 快速开始
 
 ### 使用预编译版本（推荐）
 
-1. 从发布页面下载对应平台的安装包
+1. 从 [Releases](../../releases) 页面下载对应平台的安装包：
+   - Windows: `invoice_pretty.exe` 或 `invoice_pretty_portable.zip`
+   - macOS Intel: `invoice_pretty_intel.dmg`
+   - macOS Apple Silicon: `invoice_pretty_arm64.dmg`
+
 2. 解压到任意目录
 3. 运行可执行文件即可使用
+
+启动后您将看到如下界面：
+
+![启动界面](img/assets/img1.png)
 
 ### 从源代码运行
 
@@ -184,6 +200,20 @@ python main.py
 - `ILayoutManager`: 布局管理接口
 - `IPDFProcessor`: PDF处理接口
 - `IUIController`: 用户界面控制接口
+
+## 🖼️ 界面预览
+
+系统提供现代化的图形用户界面，操作简单直观：
+
+| 主界面 | 处理界面 |
+|--------|----------|
+| ![主界面](img/assets/img1.png) | ![处理界面](img/assets/img2.png) |
+
+**主要界面功能**：
+- 🎯 **文件选择**: 支持拖拽添加PDF文件和ZIP压缩包
+- 📁 **批量处理**: 一次性处理多个发票文件
+- ⚡ **实时进度**: 显示处理进度和详细日志
+- 🎨 **现代设计**: 简洁美观的用户界面
 
 ## 功能特性
 

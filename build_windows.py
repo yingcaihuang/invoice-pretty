@@ -146,7 +146,7 @@ def build_windows_exe():
         '--noconfirm',
         '--onefile',  # 单文件模式
         '--windowed',  # 无控制台窗口
-        '--name', 'PDF发票拼版打印系统',
+        '--name', 'invoice_pretty',
         
         # 添加数据文件
         '--add-data', f'src{data_separator}src',
@@ -210,7 +210,7 @@ def create_windows_installer():
     """创建Windows安装程序"""
     safe_print("[INFO] 创建Windows安装程序...")
     
-    exe_path = Path("dist/PDF发票拼版打印系统.exe")
+    exe_path = Path("dist/invoice_pretty.exe")
     if not exe_path.exists():
         safe_print("[ERROR] 找不到EXE文件")
         return False
@@ -352,25 +352,25 @@ def create_portable_package():
     """创建便携版打包"""
     safe_print("[INFO] 创建便携版打包...")
     
-    exe_path = Path("dist/PDF发票拼版打印系统.exe")
+    exe_path = Path("dist/invoice_pretty.exe")
     if not exe_path.exists():
         safe_print("[ERROR] 找不到EXE文件")
         return False
     
     # 创建便携版目录
-    portable_dir = Path("dist/PDF发票拼版打印系统-便携版")
+    portable_dir = Path("dist/invoice_pretty_portable")
     if portable_dir.exists():
         shutil.rmtree(portable_dir)
     portable_dir.mkdir()
     
     # 复制EXE文件
-    shutil.copy2(exe_path, portable_dir / "PDF发票拼版打印系统.exe")
+    shutil.copy2(exe_path, portable_dir / "invoice_pretty.exe")
     
     # 创建说明文件
     readme_content = """PDF发票拼版打印系统 - 便携版
 
 使用说明:
-1. 双击"PDF发票拼版打印系统.exe"启动程序
+1. 双击"invoice_pretty.exe"启动程序
 2. 选择PDF发票文件或ZIP压缩包
 3. 选择输出目录
 4. 点击"开始拼版处理"
@@ -390,14 +390,14 @@ def create_portable_package():
 如有问题，请查看程序界面中的处理日志信息。
 """
     
-    readme_path = portable_dir / "使用说明.txt"
+    readme_path = portable_dir / "README.txt"
     with open(readme_path, 'w', encoding='utf-8') as f:
         f.write(readme_content)
     
     # 创建ZIP压缩包
     try:
         import zipfile
-        zip_path = Path("dist/PDF发票拼版打印系统-便携版.zip")
+        zip_path = Path("dist/invoice_pretty_portable.zip")
         
         with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
             for file_path in portable_dir.rglob('*'):
@@ -426,25 +426,25 @@ def show_build_results():
     safe_print("\n生成的文件:")
     
     # 检查EXE文件
-    exe_file = dist_dir / "PDF发票拼版打印系统.exe"
+    exe_file = dist_dir / "invoice_pretty.exe"
     if exe_file.exists():
         size_mb = exe_file.stat().st_size / (1024 * 1024)
         safe_print(f"  [OK] EXE文件: {exe_file} ({size_mb:.1f} MB)")
     
     # 检查安装程序
-    installer_files = list(dist_dir.glob("*安装程序*"))
+    installer_files = list(dist_dir.glob("*installer*"))
     for installer in installer_files:
         if installer.is_file():
             size_mb = installer.stat().st_size / (1024 * 1024)
             safe_print(f"  [OK] 安装程序: {installer} ({size_mb:.1f} MB)")
     
     # 检查便携版
-    portable_zip = dist_dir / "PDF发票拼版打印系统-便携版.zip"
+    portable_zip = dist_dir / "invoice_pretty_portable.zip"
     if portable_zip.exists():
         size_mb = portable_zip.stat().st_size / (1024 * 1024)
         safe_print(f"  [OK] 便携版: {portable_zip} ({size_mb:.1f} MB)")
     
-    portable_dir = dist_dir / "PDF发票拼版打印系统-便携版"
+    portable_dir = dist_dir / "invoice_pretty_portable"
     if portable_dir.exists():
         safe_print(f"  [OK] 便携版目录: {portable_dir}")
     
