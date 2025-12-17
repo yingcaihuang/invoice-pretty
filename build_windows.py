@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 """
 Windows EXE打包构建脚本
 使用PyInstaller创建Windows可执行文件和安装包
@@ -11,30 +12,50 @@ from pathlib import Path
 import shutil
 import platform
 
+# 设置Windows控制台编码
+if sys.platform == 'win32':
+    import locale
+    try:
+        # 尝试设置UTF-8编码
+        sys.stdout.reconfigure(encoding='utf-8')
+        sys.stderr.reconfigure(encoding='utf-8')
+    except (AttributeError, OSError):
+        # 如果失败，使用系统默认编码
+        pass
+
+def safe_print(message):
+    """安全的打印函数，处理编码问题"""
+    try:
+        print(message)
+    except UnicodeEncodeError:
+        # 如果包含无法编码的字符，使用ASCII替代
+        safe_message = message.encode('ascii', 'replace').decode('ascii')
+        print(safe_message)
+
 def check_windows_environment():
     """检查Windows构建环境"""
-    print("🔍 检查Windows构建环境...")
+    safe_print("[INFO] 检查Windows构建环境...")
     
     # 检查操作系统
     if platform.system() != 'Windows':
-        print("⚠️  警告: 当前不是Windows系统，但可以创建Windows构建配置")
+        safe_print("[WARN] 警告: 当前不是Windows系统，但可以创建Windows构建配置")
         return True
     
     # 检查Python版本
     python_version = sys.version_info
-    print(f"Python版本: {python_version.major}.{python_version.minor}.{python_version.micro}")
+    safe_print(f"Python版本: {python_version.major}.{python_version.minor}.{python_version.micro}")
     
     if python_version < (3, 8):
-        print("❌ Python版本过低，建议使用Python 3.8+")
+        safe_print("[ERROR] Python版本过低，建议使用Python 3.8+")
         return False
     
     # 检查PyInstaller
     try:
         result = subprocess.run(['pyinstaller', '--version'], 
                               capture_output=True, text=True, check=True)
-        print(f"✅ PyInstaller版本: {result.stdout.strip()}")
+        safe_print(f"[OK] PyInstaller版本: {result.stdout.strip()}")
     except (subprocess.CalledProcessError, FileNotFoundError):
-        print("❌ PyInstaller未安装，请运行: pip install pyinstaller")
+        safe_print("[ERROR] PyInstaller未安装，请运行: pip install pyinstaller")
         return False
     
     # 检查必要的依赖
@@ -49,37 +70,37 @@ def check_windows_environment():
                 import PIL
             elif package == 'fitz':
                 import fitz
-            print(f"✅ {package}已安装")
+            safe_print(f"[OK] {package}已安装")
         except ImportError:
             missing_packages.append(package)
-            print(f"❌ {package}未安装")
+            safe_print(f"[ERROR] {package}未安装")
     
     if missing_packages:
-        print(f"请安装缺失的包: {', '.join(missing_packages)}")
+        safe_print(f"请安装缺失的包: {', '.join(missing_packages)}")
         return False
     
     return True
 
 def clean_build_files():
     """清理构建文件"""
-    print("🧹 清理旧的构建文件...")
+    safe_print("[INFO] 清理旧的构建文件...")
     
     dirs_to_clean = ['build', 'dist']
     for dir_name in dirs_to_clean:
         if Path(dir_name).exists():
             shutil.rmtree(dir_name)
-            print(f"已清理: {dir_name}/")
+            safe_print(f"已清理: {dir_name}/")
     
     # 清理spec文件
     spec_files = list(Path('.').glob('*.spec'))
     for spec_file in spec_files:
         if 'windows' in spec_file.name.lower():
             spec_file.unlink()
-            print(f"已清理: {spec_file}")
+            safe_print(f"已清理: {spec_file}")
 
 def create_windows_icon():
     """创建Windows图标文件"""
-    print("🎨 准备Windows图标...")
+    safe_print("[INFO] 准备Windows图标...")
     
     # 检查是否有图标文件
     icon_paths = [
@@ -90,15 +111,15 @@ def create_windows_icon():
     
     for icon_path in icon_paths:
         if Path(icon_path).exists():
-            print(f"✅ 找到图标文件: {icon_path}")
+            safe_print(f"[OK] 找到图标文件: {icon_path}")
             return icon_path
     
-    print("⚠️  未找到.ico图标文件，将使用默认图标")
+    safe_print("[WARN] 未找到.ico图标文件，将使用默认图标")
     return None
 
 def build_windows_exe():
     """构建Windows EXE文件"""
-    print("🔨 构建Windows EXE文件...")
+    safe_print("[INFO] 构建Windows EXE文件...")
     
     # 获取图标文件
     icon_file = create_windows_icon()
@@ -158,25 +179,25 @@ def build_windows_exe():
     if icon_file:
         cmd.extend(['--icon', icon_file])
     
-    print("执行构建命令...")
-    print(f"命令: {' '.join(cmd)}")
+    safe_print("执行构建命令...")
+    safe_print(f"命令: {' '.join(cmd)}")
     
     result = subprocess.run(cmd)
     
     if result.returncode == 0:
-        print("✅ Windows EXE构建完成")
+        safe_print("[OK] Windows EXE构建完成")
         return True
     else:
-        print("❌ Windows EXE构建失败")
+        safe_print("[ERROR] Windows EXE构建失败")
         return False
 
 def create_windows_installer():
     """创建Windows安装程序"""
-    print("📦 创建Windows安装程序...")
+    safe_print("[INFO] 创建Windows安装程序...")
     
     exe_path = Path("dist/PDF发票拼版打印系统.exe")
     if not exe_path.exists():
-        print("❌ 找不到EXE文件")
+        safe_print("[ERROR] 找不到EXE文件")
         return False
     
     # 检查是否有NSIS或Inno Setup
@@ -190,14 +211,14 @@ def create_windows_installer():
         try:
             subprocess.run(test_cmd, capture_output=True, check=True)
             available_tool = tool_name
-            print(f"✅ 找到安装程序工具: {tool_name}")
+            safe_print(f"[OK] 找到安装程序工具: {tool_name}")
             break
         except (subprocess.CalledProcessError, FileNotFoundError):
             continue
     
     if not available_tool:
-        print("⚠️  未找到NSIS或Inno Setup，跳过安装程序创建")
-        print("💡 提示: 可以手动创建安装程序或使用便携版EXE")
+        safe_print("[WARN] 未找到NSIS或Inno Setup，跳过安装程序创建")
+        safe_print("[INFO] 提示: 可以手动创建安装程序或使用便携版EXE")
         return True
     
     # 创建简单的安装脚本
@@ -262,11 +283,11 @@ SectionEnd
     
     try:
         result = subprocess.run(['makensis', str(script_path)], check=True)
-        print("✅ NSIS安装程序创建完成")
+        safe_print("[OK] NSIS安装程序创建完成")
         script_path.unlink()  # 删除临时脚本
         return True
     except subprocess.CalledProcessError:
-        print("❌ NSIS安装程序创建失败")
+        safe_print("[ERROR] NSIS安装程序创建失败")
         return False
 
 def create_inno_installer(exe_path):
@@ -305,20 +326,20 @@ Filename: "{{app}}\\PDF发票拼版打印系统.exe"; Description: "启动PDF发
     
     try:
         result = subprocess.run(['iscc', str(script_path)], check=True)
-        print("✅ Inno Setup安装程序创建完成")
+        safe_print("[OK] Inno Setup安装程序创建完成")
         script_path.unlink()  # 删除临时脚本
         return True
     except subprocess.CalledProcessError:
-        print("❌ Inno Setup安装程序创建失败")
+        safe_print("[ERROR] Inno Setup安装程序创建失败")
         return False
 
 def create_portable_package():
     """创建便携版打包"""
-    print("📁 创建便携版打包...")
+    safe_print("[INFO] 创建便携版打包...")
     
     exe_path = Path("dist/PDF发票拼版打印系统.exe")
     if not exe_path.exists():
-        print("❌ 找不到EXE文件")
+        safe_print("[ERROR] 找不到EXE文件")
         return False
     
     # 创建便携版目录
@@ -369,53 +390,53 @@ def create_portable_package():
                     arcname = file_path.relative_to(portable_dir.parent)
                     zipf.write(file_path, arcname)
         
-        print(f"✅ 便携版ZIP创建完成: {zip_path}")
+        safe_print(f"[OK] 便携版ZIP创建完成: {zip_path}")
         return True
         
     except Exception as e:
-        print(f"❌ 创建便携版ZIP失败: {e}")
+        safe_print(f"[ERROR] 创建便携版ZIP失败: {e}")
         return False
 
 def show_build_results():
     """显示构建结果"""
-    print("\n" + "="*60)
-    print("🎉 Windows构建完成！")
-    print("="*60)
+    safe_print("\n" + "="*60)
+    safe_print("Windows构建完成！")
+    safe_print("="*60)
     
     dist_dir = Path("dist")
     if not dist_dir.exists():
-        print("❌ 未找到dist目录")
+        safe_print("[ERROR] 未找到dist目录")
         return
     
-    print("\n📁 生成的文件:")
+    safe_print("\n生成的文件:")
     
     # 检查EXE文件
     exe_file = dist_dir / "PDF发票拼版打印系统.exe"
     if exe_file.exists():
         size_mb = exe_file.stat().st_size / (1024 * 1024)
-        print(f"  ✅ EXE文件: {exe_file} ({size_mb:.1f} MB)")
+        safe_print(f"  [OK] EXE文件: {exe_file} ({size_mb:.1f} MB)")
     
     # 检查安装程序
     installer_files = list(dist_dir.glob("*安装程序*"))
     for installer in installer_files:
         if installer.is_file():
             size_mb = installer.stat().st_size / (1024 * 1024)
-            print(f"  ✅ 安装程序: {installer} ({size_mb:.1f} MB)")
+            safe_print(f"  [OK] 安装程序: {installer} ({size_mb:.1f} MB)")
     
     # 检查便携版
     portable_zip = dist_dir / "PDF发票拼版打印系统-便携版.zip"
     if portable_zip.exists():
         size_mb = portable_zip.stat().st_size / (1024 * 1024)
-        print(f"  ✅ 便携版: {portable_zip} ({size_mb:.1f} MB)")
+        safe_print(f"  [OK] 便携版: {portable_zip} ({size_mb:.1f} MB)")
     
     portable_dir = dist_dir / "PDF发票拼版打印系统-便携版"
     if portable_dir.exists():
-        print(f"  ✅ 便携版目录: {portable_dir}")
+        safe_print(f"  [OK] 便携版目录: {portable_dir}")
     
-    print("\n💡 使用建议:")
-    print("  - EXE文件: 适合个人使用，双击即可运行")
-    print("  - 安装程序: 适合正式部署，包含开始菜单和桌面快捷方式")
-    print("  - 便携版: 适合分发和移动使用，无需安装")
+    safe_print("\n使用建议:")
+    safe_print("  - EXE文件: 适合个人使用，双击即可运行")
+    safe_print("  - 安装程序: 适合正式部署，包含开始菜单和桌面快捷方式")
+    safe_print("  - 便携版: 适合分发和移动使用，无需安装")
 
 def main():
     """主函数"""
@@ -429,16 +450,16 @@ def main():
     parser.add_argument('--no-clean', action='store_true', help='不清理旧文件')
     args = parser.parse_args()
     
-    print("🚀 PDF发票拼版打印系统 - Windows构建")
-    print("=" * 60)
+    safe_print("PDF发票拼版打印系统 - Windows构建")
+    safe_print("=" * 60)
     
     # 检查构建环境
     if not check_windows_environment():
-        print("❌ 构建环境检查失败")
+        safe_print("[ERROR] 构建环境检查失败")
         return False
     
     if args.check:
-        print("✅ 构建环境检查通过")
+        safe_print("[OK] 构建环境检查通过")
         return True
     
     # 构建步骤
@@ -458,9 +479,9 @@ def main():
     
     # 执行构建步骤
     for step_name, step_func in steps:
-        print(f"\n📋 {step_name}...")
+        safe_print(f"\n[INFO] {step_name}...")
         if not step_func():
-            print(f"❌ {step_name}失败")
+            safe_print(f"[ERROR] {step_name}失败")
             return False
     
     # 显示构建结果

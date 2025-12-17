@@ -61,7 +61,7 @@ jobs:
 
   # macOS Intel (x86_64) 构建作业
   build-macos-intel:
-    runs-on: macos-13  # Intel-based runner
+    runs-on: macos-15-intel  # Intel-based runner (updated from deprecated macos-13)
     
     steps:
     - name: Checkout code
