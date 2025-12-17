@@ -1,0 +1,313 @@
+name: Build and Release
+
+on:
+  push:
+    tags:
+      - 'v*'  # 当推送版本标签时触发
+  workflow_dispatch:  # 允许手动触发
+    inputs:
+      version:
+        description: 'Release version (e.g., v1.0.0)'
+        required: true
+        default: 'v1.0.0'
+
+env:
+  PYTHON_VERSION: '3.11'
+
+jobs:
+  # Windows构建作业
+  build-windows:
+    runs-on: windows-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+    
+    - name: Cache pip dependencies
+      uses: actions/cache@v3
+      with:
+        path: ~\AppData\Local\pip\Cache
+        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install pyinstaller
+    
+    - name: Build Windows EXE
+      run: |
+        python build_windows.py --exe-only
+    
+    - name: Create portable package
+      run: |
+        python build_windows.py --portable-only
+    
+    - name: Upload Windows artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: windows-build
+        path: |
+          dist/PDF发票拼版打印系统.exe
+          dist/PDF发票拼版打印系统-便携版.zip
+        retention-days: 30
+
+  # macOS Intel (x86_64) 构建作业
+  build-macos-intel:
+    runs-on: macos-13  # Intel-based runner
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+    
+    - name: Cache pip dependencies
+      uses: actions/cache@v3
+      with:
+        path: ~/Library/Caches/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+    
+    - name: Install system dependencies
+      run: |
+        brew install create-dmg
+    
+    - name: Install Python dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install pyinstaller
+    
+    - name: Build macOS app and DMG (Intel) - Import Fixed Version
+      run: |
+        python build_import_fixed.py
+    
+    - name: Rename artifacts for Intel
+      run: |
+        cd dist
+        if [ -f "PDF发票拼版打印系统-导入修复版.dmg" ]; then
+          mv "PDF发票拼版打印系统-导入修复版.dmg" "PDF发票拼版打印系统-intel.dmg"
+        fi
+        if [ -d "PDF发票拼版打印系统-导入修复版.app" ]; then
+          mv "PDF发票拼版打印系统-导入修复版.app" "PDF发票拼版打印系统-intel.app"
+        fi
+    
+    - name: Upload macOS Intel artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: macos-intel-build
+        path: |
+          dist/PDF发票拼版打印系统-intel.dmg
+          dist/PDF发票拼版打印系统-intel.app
+        retention-days: 30
+
+  # macOS Apple Silicon (ARM64) 构建作业
+  build-macos-arm:
+    runs-on: macos-latest  # ARM-based runner (M1/M2)
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+    
+    - name: Cache pip dependencies
+      uses: actions/cache@v3
+      with:
+        path: ~/Library/Caches/pip
+        key: ${{ runner.os }}-arm64-pip-${{ hashFiles('**/requirements.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-arm64-pip-
+    
+    - name: Install system dependencies
+      run: |
+        brew install create-dmg
+    
+    - name: Install Python dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install pyinstaller
+    
+    - name: Build macOS app and DMG (ARM64) - Import Fixed Version
+      run: |
+        python build_import_fixed.py
+    
+    - name: Rename artifacts for ARM64
+      run: |
+        cd dist
+        if [ -f "PDF发票拼版打印系统-导入修复版.dmg" ]; then
+          mv "PDF发票拼版打印系统-导入修复版.dmg" "PDF发票拼版打印系统-arm64.dmg"
+        fi
+        if [ -d "PDF发票拼版打印系统-导入修复版.app" ]; then
+          mv "PDF发票拼版打印系统-导入修复版.app" "PDF发票拼版打印系统-arm64.app"
+        fi
+    
+    - name: Upload macOS ARM64 artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: macos-arm64-build
+        path: |
+          dist/PDF发票拼版打印系统-arm64.dmg
+          dist/PDF发票拼版打印系统-arm64.app
+        retention-days: 30
+
+  # 创建GitHub Release
+  create-release:
+    needs: [build-windows, build-macos-intel, build-macos-arm]
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Get version
+      id: get_version
+      run: |
+        if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+          echo "version=${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
+        else
+          echo "version=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+        fi
+    
+    - name: Download all artifacts
+      uses: actions/download-artifact@v3
+    
+    - name: List downloaded files
+      run: |
+        echo "Downloaded artifacts:"
+        find . -type f -name "*.exe" -o -name "*.dmg" -o -name "*.zip" -o -name "*.app" | sort
+    
+    - name: Create release notes
+      id: release_notes
+      run: |
+        cat > release_notes.md << 'EOF'
+        # PDF发票拼版打印系统 ${{ steps.get_version.outputs.version }}
+        
+        ## 🎉 新版本发布
+        
+        智能处理12306电子发票，支持PDF和ZIP文件，一键生成拼版打印文件。
+        
+        ## 📦 下载说明
+        
+        ### Windows用户
+        - **PDF发票拼版打印系统.exe** - 单文件可执行程序，双击即可运行
+        - **PDF发票拼版打印系统-便携版.zip** - 绿色便携版，解压即用
+        
+        ### macOS用户
+        - **PDF发票拼版打印系统-intel.dmg** - Intel Mac (x86_64) 安装包
+        - **PDF发票拼版打印系统-arm64.dmg** - Apple Silicon Mac (M1/M2) 安装包
+        
+        ## ✨ 主要功能
+        
+        - 🔄 支持PDF文件和ZIP压缩包批量处理
+        - 📄 2列4行A4纸张拼版布局，节省50%纸张
+        - 🎨 现代化图形用户界面
+        - ⚡ 实时处理进度显示
+        - 📊 详细的处理日志信息
+        - 🔧 智能文件验证和错误处理
+        
+        ## 🖥️ 系统要求
+        
+        ### Windows
+        - Windows 7/8/10/11 (64位推荐)
+        - 无需额外依赖，开箱即用
+        
+        ### macOS
+        - macOS 10.14+ (Mojave或更高版本)
+        - Intel Mac或Apple Silicon Mac
+        
+        ## 🚀 使用方法
+        
+        1. 下载对应系统的安装包
+        2. Windows: 双击EXE文件或解压便携版
+        3. macOS: 打开DMG文件，拖拽到Applications文件夹
+        4. 启动程序，选择PDF文件或ZIP压缩包
+        5. 选择输出目录，点击"开始拼版处理"
+        
+        ## 🔧 技术特性
+        
+        - 基于PyMuPDF的高性能PDF处理
+        - 支持多种图像格式和压缩算法
+        - 智能布局算法，保持发票纵横比
+        - 300DPI高质量输出
+        - 跨平台兼容性
+        
+        ---
+        
+        如有问题或建议，请在GitHub Issues中反馈。
+        EOF
+        
+        echo "release_notes<<EOF" >> $GITHUB_OUTPUT
+        cat release_notes.md >> $GITHUB_OUTPUT
+        echo "EOF" >> $GITHUB_OUTPUT
+    
+    - name: Create Release
+      id: create_release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ steps.get_version.outputs.version }}
+        release_name: PDF发票拼版打印系统 ${{ steps.get_version.outputs.version }}
+        body: ${{ steps.release_notes.outputs.release_notes }}
+        draft: false
+        prerelease: false
+    
+    # 上传Windows文件
+    - name: Upload Windows EXE
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ./windows-build/PDF发票拼版打印系统.exe
+        asset_name: PDF发票拼版打印系统-${{ steps.get_version.outputs.version }}-windows.exe
+        asset_content_type: application/octet-stream
+    
+    - name: Upload Windows Portable
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ./windows-build/PDF发票拼版打印系统-便携版.zip
+        asset_name: PDF发票拼版打印系统-${{ steps.get_version.outputs.version }}-windows-portable.zip
+        asset_content_type: application/zip
+    
+    # 上传macOS Intel文件
+    - name: Upload macOS Intel DMG
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ./macos-intel-build/PDF发票拼版打印系统-intel.dmg
+        asset_name: PDF发票拼版打印系统-${{ steps.get_version.outputs.version }}-macos-intel.dmg
+        asset_content_type: application/octet-stream
+    
+    # 上传macOS ARM64文件
+    - name: Upload macOS ARM64 DMG
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ./macos-arm64-build/PDF发票拼版打印系统-arm64.dmg
+        asset_name: PDF发票拼版打印系统-${{ steps.get_version.outputs.version }}-macos-arm64.dmg
+        asset_content_type: application/octet-stream
