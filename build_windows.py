@@ -85,18 +85,27 @@ def clean_build_files():
     """清理构建文件"""
     safe_print("[INFO] 清理旧的构建文件...")
     
-    dirs_to_clean = ['build', 'dist']
-    for dir_name in dirs_to_clean:
-        if Path(dir_name).exists():
-            shutil.rmtree(dir_name)
-            safe_print(f"已清理: {dir_name}/")
-    
-    # 清理spec文件
-    spec_files = list(Path('.').glob('*.spec'))
-    for spec_file in spec_files:
-        if 'windows' in spec_file.name.lower():
-            spec_file.unlink()
-            safe_print(f"已清理: {spec_file}")
+    try:
+        dirs_to_clean = ['build', 'dist']
+        for dir_name in dirs_to_clean:
+            if Path(dir_name).exists():
+                shutil.rmtree(dir_name)
+                safe_print(f"已清理: {dir_name}/")
+        
+        # 清理spec文件
+        spec_files = list(Path('.').glob('*.spec'))
+        for spec_file in spec_files:
+            if 'windows' in spec_file.name.lower():
+                spec_file.unlink()
+                safe_print(f"已清理: {spec_file}")
+        
+        safe_print("[OK] 构建文件清理完成")
+        return True
+        
+    except Exception as e:
+        safe_print(f"[WARN] 清理构建文件时遇到问题: {e}")
+        safe_print("[INFO] 继续构建过程...")
+        return True  # 即使清理失败也继续构建
 
 def create_windows_icon():
     """创建Windows图标文件"""
@@ -124,6 +133,12 @@ def build_windows_exe():
     # 获取图标文件
     icon_file = create_windows_icon()
     
+    # 检测平台并设置正确的分隔符
+    if platform.system() == 'Windows':
+        data_separator = ';'
+    else:
+        data_separator = ':'
+    
     # 构建PyInstaller命令
     cmd = [
         'pyinstaller',
@@ -134,8 +149,8 @@ def build_windows_exe():
         '--name', 'PDF发票拼版打印系统',
         
         # 添加数据文件
-        '--add-data', 'src;src',
-        '--add-data', 'config.json;.',
+        '--add-data', f'src{data_separator}src',
+        '--add-data', f'config.json{data_separator}.',
         
         # 添加隐藏导入
         '--hidden-import', 'tkinter',
