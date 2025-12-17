@@ -1,0 +1,31 @@
+{
+  "layout": {
+    "page_width": 210.0,
+    "page_height": 297.0,
+    "columns": 2,
+    "rows": 4,
+    "margin": 10.0,
+    "spacing": 5.0
+  },
+  "output": {
+    "dpi": 300,
+    "quality": 95,
+    "format": "PDF"
+  },
+  "file_handling": {
+    "max_file_size_mb": 50,
+    "supported_extensions": [".pdf"],
+    "batch_size": 100
+  },
+  "ui": {
+    "window_width": 800,
+    "window_height": 600,
+    "theme": "default"
+  },
+  "logging": {
+    "level": "INFO",
+    "file": "pdf_invoice_layout.log",
+    "max_size_mb": 10,
+    "backup_count": 3
+  }
+}
