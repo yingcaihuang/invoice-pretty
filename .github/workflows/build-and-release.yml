@@ -24,12 +24,12 @@ jobs:
       uses: actions/checkout@v4
     
     - name: Set up Python
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v5
       with:
         python-version: ${{ env.PYTHON_VERSION }}
     
     - name: Cache pip dependencies
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: ~\AppData\Local\pip\Cache
         key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
@@ -51,7 +51,7 @@ jobs:
         python build_windows.py --portable-only
     
     - name: Upload Windows artifacts
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: windows-build
         path: |
@@ -68,12 +68,12 @@ jobs:
       uses: actions/checkout@v4
     
     - name: Set up Python
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v5
       with:
         python-version: ${{ env.PYTHON_VERSION }}
     
     - name: Cache pip dependencies
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: ~/Library/Caches/pip
         key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
@@ -105,7 +105,7 @@ jobs:
         fi
     
     - name: Upload macOS Intel artifacts
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: macos-intel-build
         path: |
@@ -122,12 +122,12 @@ jobs:
       uses: actions/checkout@v4
     
     - name: Set up Python
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v5
       with:
         python-version: ${{ env.PYTHON_VERSION }}
     
     - name: Cache pip dependencies
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: ~/Library/Caches/pip
         key: ${{ runner.os }}-arm64-pip-${{ hashFiles('**/requirements.txt') }}
@@ -159,7 +159,7 @@ jobs:
         fi
     
     - name: Upload macOS ARM64 artifacts
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: macos-arm64-build
         path: |
@@ -186,7 +186,7 @@ jobs:
         fi
     
     - name: Download all artifacts
-      uses: actions/download-artifact@v3
+      uses: actions/download-artifact@v4
     
     - name: List downloaded files
       run: |
@@ -258,56 +258,18 @@ jobs:
         echo "EOF" >> $GITHUB_OUTPUT
     
     - name: Create Release
-      id: create_release
-      uses: actions/create-release@v1
+      uses: softprops/action-gh-release@v2
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         tag_name: ${{ steps.get_version.outputs.version }}
-        release_name: PDF发票拼版打印系统 ${{ steps.get_version.outputs.version }}
+        name: PDF发票拼版打印系统 ${{ steps.get_version.outputs.version }}
         body: ${{ steps.release_notes.outputs.release_notes }}
         draft: false
         prerelease: false
-    
-    # 上传Windows文件
-    - name: Upload Windows EXE
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ./windows-build/PDF发票拼版打印系统.exe
-        asset_name: PDF发票拼版打印系统-${{ steps.get_version.outputs.version }}-windows.exe
-        asset_content_type: application/octet-stream
-    
-    - name: Upload Windows Portable
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ./windows-build/PDF发票拼版打印系统-便携版.zip
-        asset_name: PDF发票拼版打印系统-${{ steps.get_version.outputs.version }}-windows-portable.zip
-        asset_content_type: application/zip
-    
-    # 上传macOS Intel文件
-    - name: Upload macOS Intel DMG
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ./macos-intel-build/PDF发票拼版打印系统-intel.dmg
-        asset_name: PDF发票拼版打印系统-${{ steps.get_version.outputs.version }}-macos-intel.dmg
-        asset_content_type: application/octet-stream
-    
-    # 上传macOS ARM64文件
-    - name: Upload macOS ARM64 DMG
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ./macos-arm64-build/PDF发票拼版打印系统-arm64.dmg
-        asset_name: PDF发票拼版打印系统-${{ steps.get_version.outputs.version }}-macos-arm64.dmg
-        asset_content_type: application/octet-stream
+        files: |
+          ./windows-build/PDF发票拼版打印系统.exe
+          ./windows-build/PDF发票拼版打印系统-便携版.zip
+          ./macos-intel-build/PDF发票拼版打印系统-intel.dmg
+          ./macos-arm64-build/PDF发票拼版打印系统-arm64.dmg
+        fail_on_unmatched_files: false
