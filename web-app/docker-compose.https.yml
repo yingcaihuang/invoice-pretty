@@ -1,0 +1,187 @@
+services:
+  traefik:
+    image: traefik:v3.0
+    restart: unless-stopped
+    command:
+      # Enable Docker provider
+      - --providers.docker=true
+      - --providers.docker.exposedbydefault=false
+      
+      # Enable API and dashboard
+      - --api.dashboard=true
+      - --api.insecure=false
+      
+      # HTTP entrypoint
+      - --entrypoints.web.address=:80
+      - --entrypoints.web.http.redirections.entrypoint.to=websecure
+      - --entrypoints.web.http.redirections.entrypoint.scheme=https
+      
+      # HTTPS entrypoint
+      - --entrypoints.websecure.address=:443
+      
+      # Let's Encrypt ACME configuration
+      - --certificatesresolvers.letsencrypt.acme.tlschallenge=true
+      - --certificatesresolvers.letsencrypt.acme.email=${ACME_EMAIL}
+      - --certificatesresolvers.letsencrypt.acme.storage=/letsencrypt/acme.json
+      - --certificatesresolvers.letsencrypt.acme.caserver=${ACME_CA_SERVER:-https://acme-v02.api.letsencrypt.org/directory}
+      
+      # Logging
+      - --log.level=${TRAEFIK_LOG_LEVEL:-INFO}
+      - --accesslog=true
+    ports:
+      - "80:80"   # HTTP (redirects to HTTPS)
+      - "443:443" # HTTPS (main traffic)
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - letsencrypt_data:/letsencrypt
+    labels:
+      # Dashboard configuration
+      - traefik.enable=true
+      - traefik.http.routers.dashboard.rule=Host(`${TRAEFIK_DOMAIN}`) && (PathPrefix(`/api`) || PathPrefix(`/dashboard`))
+      - traefik.http.routers.dashboard.tls=true
+      - traefik.http.routers.dashboard.tls.certresolver=letsencrypt
+      - traefik.http.routers.dashboard.middlewares=auth
+      - traefik.http.middlewares.auth.basicauth.users=${TRAEFIK_AUTH}
+    networks:
+      - web
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - backend
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      - PORT=8000
+      - REDIS_URL=redis://redis:6379
+      - STORAGE_PATH=/app/storage
+      - DEBUG=${DEBUG:-false}
+      - MAX_FILE_SIZE=${MAX_FILE_SIZE:-52428800}
+      - CLEANUP_INTERVAL=${CLEANUP_INTERVAL:-24}
+      - MAX_CONCURRENT_TASKS=${MAX_CONCURRENT_TASKS:-4}
+    volumes:
+      - storage_data:/app/storage
+    depends_on:
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.backend.rule=Host(`${DOMAIN}`) && PathPrefix(`/api`)
+      - traefik.http.routers.backend.tls=true
+      - traefik.http.routers.backend.tls.certresolver=letsencrypt
+      - traefik.http.services.backend.loadbalancer.server.port=8000
+      # Security headers
+      - traefik.http.routers.backend.middlewares=security-headers
+    networks:
+      - web
+      - backend
+
+  celery-worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      - REDIS_URL=redis://redis:6379
+      - STORAGE_PATH=/app/storage
+      - DEBUG=${DEBUG:-false}
+      - MAX_CONCURRENT_TASKS=${MAX_CONCURRENT_TASKS:-4}
+    volumes:
+      - storage_data:/app/storage
+    depends_on:
+      redis:
+        condition: service_healthy
+    command: ["./start_celery.sh"]
+    healthcheck:
+      test: ["CMD", "celery", "-A", "app.core.celery", "inspect", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - backend
+
+  celery-beat:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      - REDIS_URL=redis://redis:6379
+      - STORAGE_PATH=/app/storage
+      - DEBUG=${DEBUG:-false}
+      - CLEANUP_INTERVAL=${CLEANUP_INTERVAL:-24}
+    volumes:
+      - storage_data:/app/storage
+      - celery_beat_data:/app/beat_data
+    depends_on:
+      redis:
+        condition: service_healthy
+    command: ["./start_celery_beat.sh"]
+    networks:
+      - backend
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      - REACT_APP_API_URL=https://${DOMAIN}
+    depends_on:
+      - backend
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.frontend.rule=Host(`${DOMAIN}`)
+      - traefik.http.routers.frontend.tls=true
+      - traefik.http.routers.frontend.tls.certresolver=letsencrypt
+      - traefik.http.services.frontend.loadbalancer.server.port=80
+      # Security headers middleware
+      - traefik.http.routers.frontend.middlewares=security-headers
+      - traefik.http.middlewares.security-headers.headers.customrequestheaders.X-Forwarded-Proto=https
+      - traefik.http.middlewares.security-headers.headers.customrequestheaders.X-Forwarded-For=
+      - traefik.http.middlewares.security-headers.headers.sslredirect=true
+      - traefik.http.middlewares.security-headers.headers.stsincludesubdomains=true
+      - traefik.http.middlewares.security-headers.headers.stspreload=true
+      - traefik.http.middlewares.security-headers.headers.stsseconds=31536000
+      - traefik.http.middlewares.security-headers.headers.framedeny=true
+      - traefik.http.middlewares.security-headers.headers.contenttypenosniff=true
+      - traefik.http.middlewares.security-headers.headers.browserxssfilter=true
+      - traefik.http.middlewares.security-headers.headers.referrerpolicy=strict-origin-when-cross-origin
+    networks:
+      - web
+
+networks:
+  web:
+    external: false
+  backend:
+    external: false
+
+volumes:
+  redis_data:
+    driver: local
+  celery_beat_data:
+    driver: local
+  storage_data:
+    driver: local
+  letsencrypt_data:
+    driver: local

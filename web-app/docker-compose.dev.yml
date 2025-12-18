@@ -1,0 +1,107 @@
+version: '3.8'
+
+services:
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.dev
+    ports:
+      - "8000:8000"
+    environment:
+      - PORT=8000
+      - REDIS_URL=redis://redis:6379
+      - STORAGE_PATH=/app/storage
+      - DEBUG=true
+      - MAX_FILE_SIZE=52428800
+      - CLEANUP_INTERVAL=1
+      - MAX_CONCURRENT_TASKS=2
+    volumes:
+      - ./backend:/app
+      - ./storage:/app/storage
+    depends_on:
+      redis:
+        condition: service_healthy
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  celery-worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.dev
+    environment:
+      - REDIS_URL=redis://redis:6379
+      - STORAGE_PATH=/app/storage
+      - DEBUG=true
+      - MAX_CONCURRENT_TASKS=2
+    volumes:
+      - ./backend:/app
+      - ./storage:/app/storage
+    depends_on:
+      redis:
+        condition: service_healthy
+    command: ["./start_celery.sh"]
+    healthcheck:
+      test: ["CMD", "celery", "-A", "app.core.celery", "inspect", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  celery-beat:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.dev
+    environment:
+      - REDIS_URL=redis://redis:6379
+      - STORAGE_PATH=/app/storage
+      - DEBUG=true
+      - CLEANUP_INTERVAL=1
+    volumes:
+      - ./backend:/app
+      - ./storage:/app/storage
+      - celery_beat_data:/app/beat_data
+    depends_on:
+      redis:
+        condition: service_healthy
+    command: ["./start_celery_beat.sh"]
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.dev
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    environment:
+      - CHOKIDAR_USEPOLLING=true
+      - REACT_APP_API_URL=http://localhost:8000
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+volumes:
+  redis_data:
+  celery_beat_data:

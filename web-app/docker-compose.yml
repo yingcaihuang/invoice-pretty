@@ -1,0 +1,108 @@
+services:
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "${BACKEND_PORT:-8000}:8000"
+    environment:
+      - PORT=8000
+      - REDIS_URL=redis://redis:6379
+      - STORAGE_PATH=/app/storage
+      - DEBUG=${DEBUG:-false}
+      - MAX_FILE_SIZE=${MAX_FILE_SIZE:-52428800}
+      - CLEANUP_INTERVAL=${CLEANUP_INTERVAL:-24}
+      - MAX_CONCURRENT_TASKS=${MAX_CONCURRENT_TASKS:-4}
+    volumes:
+      - storage_data:/app/storage
+    depends_on:
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  celery-worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      - REDIS_URL=redis://redis:6379
+      - STORAGE_PATH=/app/storage
+      - DEBUG=${DEBUG:-false}
+      - MAX_CONCURRENT_TASKS=${MAX_CONCURRENT_TASKS:-4}
+    volumes:
+      - storage_data:/app/storage
+    depends_on:
+      redis:
+        condition: service_healthy
+    command: ["./start_celery.sh"]
+    healthcheck:
+      test: ["CMD", "celery", "-A", "app.core.celery", "inspect", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  celery-beat:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      - REDIS_URL=redis://redis:6379
+      - STORAGE_PATH=/app/storage
+      - DEBUG=${DEBUG:-false}
+      - CLEANUP_INTERVAL=${CLEANUP_INTERVAL:-24}
+    volumes:
+      - storage_data:/app/storage
+      - celery_beat_data:/app/beat_data
+    depends_on:
+      redis:
+        condition: service_healthy
+    command: ["./start_celery_beat.sh"]
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "${FRONTEND_PORT:-3000}:80"
+    environment:
+      - REACT_APP_API_URL=${REACT_APP_API_URL:-http://localhost:8000}
+    depends_on:
+      - backend
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+volumes:
+  redis_data:
+    driver: local
+  celery_beat_data:
+    driver: local
+  storage_data:
+    driver: local

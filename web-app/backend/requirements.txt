@@ -1,0 +1,31 @@
+# FastAPI and web server dependencies
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+python-multipart==0.0.6
+python-jose[cryptography]==3.3.0
+
+# Task queue dependencies
+celery==5.3.4
+redis==5.0.1
+
+# Data validation and serialization
+pydantic==2.5.0
+pydantic-settings==2.1.0
+
+# File handling and processing
+aiofiles==23.2.1
+
+# PDF processing (reuse existing dependencies)
+PyMuPDF==1.23.8
+Pillow==10.1.0
+
+# Testing dependencies
+pytest==7.4.3
+pytest-asyncio==0.21.1
+httpx==0.25.2
+hypothesis==6.92.1
+
+# Development dependencies
+black==23.11.0
+flake8==6.1.0
+mypy==1.7.1
