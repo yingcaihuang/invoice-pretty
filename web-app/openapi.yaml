@@ -1,0 +1,874 @@
+openapi: 3.0.3
+info:
+  title: Web发票处理器 API
+  description: |
+    Web发票处理器提供RESTful API接口，支持PDF发票文件的批量处理和布局优化。
+    
+    ## 功能特性
+    - PDF文件和ZIP压缩包上传
+    - 异步任务处理和实时状态跟踪
+    - 会话管理和用户隔离
+    - 文件下载和预览
+    - 完整的错误处理机制
+    
+    ## 认证方式
+    所有API请求都需要在HTTP头部包含会话ID：`X-Session-ID: your-session-id`
+    
+    ## 基础URL
+    - 生产环境: `https://your-domain.com/api`
+    - 开发环境: `http://localhost:8000/api`
+  version: 1.0.0
+  contact:
+    name: Web发票处理器
+  license:
+    name: MIT
+servers:
+  - url: https://your-domain.com/api
+    description: 生产环境
+  - url: http://localhost:8000/api
+    description: 开发环境
+
+security:
+  - SessionAuth: []
+
+paths:
+  /session:
+    post:
+      tags:
+        - 会话管理
+      summary: 创建会话
+      description: 创建新的用户会话，获取会话ID用于后续API调用
+      security: []
+      responses:
+        '200':
+          description: 会话创建成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SessionResponse'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /health:
+    get:
+      tags:
+        - 系统状态
+      summary: 健康检查
+      description: 检查系统各组件的健康状态
+      security: []
+      responses:
+        '200':
+          description: 系统健康状态
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+
+  /upload/:
+    post:
+      tags:
+        - 文件上传
+      summary: 上传文件
+      description: 上传PDF文件或ZIP压缩包进行处理
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                files:
+                  type: array
+                  items:
+                    type: string
+                    format: binary
+                  description: 要上传的文件列表（PDF或ZIP格式）
+      responses:
+        '200':
+          description: 文件上传成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UploadResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /upload/limits:
+    get:
+      tags:
+        - 文件上传
+      summary: 获取上传限制
+      description: 获取文件上传的限制信息，包括最大文件大小和支持的文件类型
+      security: []
+      responses:
+        '200':
+          description: 上传限制信息
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UploadLimitsResponse'
+
+  /task/{taskId}/status:
+    get:
+      tags:
+        - 任务管理
+      summary: 获取任务状态
+      description: 获取指定任务的当前状态和处理进度
+      parameters:
+        - $ref: '#/components/parameters/TaskId'
+      responses:
+        '200':
+          description: 任务状态信息
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskStatusResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /task/{taskId}/progress:
+    get:
+      tags:
+        - 任务管理
+      summary: 获取任务详细进度
+      description: 获取任务的实时处理进度和详细信息
+      parameters:
+        - $ref: '#/components/parameters/TaskId'
+      responses:
+        '200':
+          description: 任务进度信息
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskProgressResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /task/:
+    get:
+      tags:
+        - 任务管理
+      summary: 获取所有任务
+      description: 获取当前会话的所有任务列表
+      parameters:
+        - name: status
+          in: query
+          description: 按状态筛选任务
+          required: false
+          schema:
+            $ref: '#/components/schemas/TaskStatus'
+      responses:
+        '200':
+          description: 任务列表
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskListResponse'
+
+  /task/{taskId}/start:
+    post:
+      tags:
+        - 任务管理
+      summary: 启动异步处理
+      description: 手动启动已排队任务的异步处理
+      parameters:
+        - $ref: '#/components/parameters/TaskId'
+      responses:
+        '200':
+          description: 任务启动成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskActionResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /task/{taskId}/cancel:
+    post:
+      tags:
+        - 任务管理
+      summary: 取消任务
+      description: 取消正在处理或排队中的任务
+      parameters:
+        - $ref: '#/components/parameters/TaskId'
+      responses:
+        '200':
+          description: 任务取消成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskActionResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /task/{taskId}/retry:
+    post:
+      tags:
+        - 任务管理
+      summary: 重试失败任务
+      description: 重新处理失败的任务
+      parameters:
+        - $ref: '#/components/parameters/TaskId'
+      responses:
+        '200':
+          description: 任务重试成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskActionResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /task/{taskId}:
+    delete:
+      tags:
+        - 任务管理
+      summary: 删除任务
+      description: 删除任务及其相关文件
+      parameters:
+        - $ref: '#/components/parameters/TaskId'
+      responses:
+        '200':
+          description: 任务删除成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskDeleteResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /task/statistics:
+    get:
+      tags:
+        - 任务管理
+      summary: 获取任务统计
+      description: 获取当前会话的任务统计信息
+      responses:
+        '200':
+          description: 任务统计信息
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskStatisticsResponse'
+
+  /download/{taskId}/{filename}:
+    get:
+      tags:
+        - 文件下载
+      summary: 下载文件
+      description: 下载任务处理完成后的结果文件
+      parameters:
+        - $ref: '#/components/parameters/TaskId'
+        - name: filename
+          in: path
+          required: true
+          description: 文件名
+          schema:
+            type: string
+        - name: inline
+          in: query
+          required: false
+          description: 是否在浏览器中预览（true）或下载（false）
+          schema:
+            type: boolean
+            default: false
+        - name: session
+          in: query
+          required: false
+          description: 会话ID（用于iframe访问）
+          schema:
+            type: string
+      responses:
+        '200':
+          description: 文件内容
+          content:
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+            application/zip:
+              schema:
+                type: string
+                format: binary
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+    head:
+      tags:
+        - 文件下载
+      summary: 检查文件可用性
+      description: 检查文件是否可用于下载，不返回文件内容
+      parameters:
+        - $ref: '#/components/parameters/TaskId'
+        - name: filename
+          in: path
+          required: true
+          description: 文件名
+          schema:
+            type: string
+      responses:
+        '200':
+          description: 文件可用
+          headers:
+            Content-Length:
+              description: 文件大小
+              schema:
+                type: integer
+            Content-Type:
+              description: 文件类型
+              schema:
+                type: string
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /task/queue/stats:
+    get:
+      tags:
+        - 队列管理
+      summary: 获取队列统计
+      description: 获取任务队列的统计信息
+      responses:
+        '200':
+          description: 队列统计信息
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QueueStatsResponse'
+
+  /task/queue/health:
+    post:
+      tags:
+        - 队列管理
+      summary: 队列健康检查
+      description: 执行队列系统的健康检查
+      responses:
+        '200':
+          description: 队列健康
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QueueHealthResponse'
+        '503':
+          description: 队列不健康
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QueueHealthResponse'
+
+components:
+  securitySchemes:
+    SessionAuth:
+      type: apiKey
+      in: header
+      name: X-Session-ID
+      description: 会话ID认证
+
+  parameters:
+    TaskId:
+      name: taskId
+      in: path
+      required: true
+      description: 任务唯一标识符
+      schema:
+        type: string
+        format: uuid
+
+  schemas:
+    TaskStatus:
+      type: string
+      enum:
+        - queued
+        - processing
+        - completed
+        - failed
+        - expired
+      description: 任务状态
+
+    SessionResponse:
+      type: object
+      properties:
+        session_id:
+          type: string
+          description: 会话唯一标识符
+        created_at:
+          type: string
+          format: date-time
+          description: 会话创建时间
+        expires_in_hours:
+          type: integer
+          description: 会话有效期（小时）
+      required:
+        - session_id
+        - created_at
+        - expires_in_hours
+
+    HealthResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [healthy, degraded, unhealthy]
+          description: 系统状态
+        services:
+          type: object
+          properties:
+            redis:
+              type: string
+              enum: [healthy, unavailable]
+            file_storage:
+              type: string
+              enum: [healthy, unavailable]
+        timestamp:
+          type: number
+          description: 检查时间戳
+      required:
+        - status
+        - services
+        - timestamp
+
+    UploadResponse:
+      type: object
+      properties:
+        taskId:
+          type: string
+          format: uuid
+          description: 任务唯一标识符
+        status:
+          $ref: '#/components/schemas/TaskStatus'
+        message:
+          type: string
+          description: 上传结果消息
+        fileCount:
+          type: integer
+          description: 上传文件数量
+        createdAt:
+          type: string
+          format: date-time
+          description: 任务创建时间
+      required:
+        - taskId
+        - status
+        - message
+        - fileCount
+        - createdAt
+
+    UploadLimitsResponse:
+      type: object
+      properties:
+        max_file_size:
+          type: integer
+          description: 最大文件大小（字节）
+        max_file_size_mb:
+          type: number
+          description: 最大文件大小（MB）
+        allowed_content_types:
+          type: array
+          items:
+            type: string
+          description: 允许的MIME类型
+        allowed_extensions:
+          type: array
+          items:
+            type: string
+          description: 允许的文件扩展名
+      required:
+        - max_file_size
+        - max_file_size_mb
+        - allowed_content_types
+        - allowed_extensions
+
+    TaskStatusResponse:
+      type: object
+      properties:
+        taskId:
+          type: string
+          format: uuid
+          description: 任务唯一标识符
+        status:
+          $ref: '#/components/schemas/TaskStatus'
+        progress:
+          type: integer
+          minimum: 0
+          maximum: 100
+          description: 处理进度百分比
+        createdAt:
+          type: string
+          format: date-time
+          description: 任务创建时间
+        updatedAt:
+          type: string
+          format: date-time
+          description: 最后更新时间
+        completedAt:
+          type: string
+          format: date-time
+          description: 任务完成时间
+          nullable: true
+        fileCount:
+          type: integer
+          description: 输入文件数量
+        downloadUrls:
+          type: array
+          items:
+            type: string
+          description: 下载链接列表
+        message:
+          type: string
+          description: 错误消息（失败任务）
+          nullable: true
+      required:
+        - taskId
+        - status
+        - progress
+        - createdAt
+        - updatedAt
+        - fileCount
+
+    TaskProgressResponse:
+      type: object
+      properties:
+        task_id:
+          type: string
+          format: uuid
+          description: 任务唯一标识符
+        progress:
+          type: integer
+          minimum: 0
+          maximum: 100
+          description: 处理进度百分比
+        status:
+          $ref: '#/components/schemas/TaskStatus'
+        updated_at:
+          type: string
+          format: date-time
+          description: 最后更新时间
+        stage:
+          type: string
+          description: 当前处理阶段
+        estimated_remaining_seconds:
+          type: integer
+          description: 预计剩余时间（秒）
+        estimated_completion_at:
+          type: string
+          format: date-time
+          description: 预计完成时间
+        progress_rate_per_minute:
+          type: number
+          description: 每分钟进度速率
+      required:
+        - task_id
+        - progress
+        - status
+        - updated_at
+
+    TaskListResponse:
+      type: object
+      properties:
+        tasks:
+          type: array
+          items:
+            $ref: '#/components/schemas/TaskInfo'
+          description: 任务列表
+        total_count:
+          type: integer
+          description: 任务总数
+        session_id:
+          type: string
+          description: 会话ID
+      required:
+        - tasks
+        - total_count
+        - session_id
+
+    TaskInfo:
+      type: object
+      properties:
+        task_id:
+          type: string
+          format: uuid
+          description: 任务唯一标识符
+        status:
+          $ref: '#/components/schemas/TaskStatus'
+        progress:
+          type: integer
+          minimum: 0
+          maximum: 100
+          description: 处理进度百分比
+        created_at:
+          type: string
+          format: date-time
+          description: 任务创建时间
+        updated_at:
+          type: string
+          format: date-time
+          description: 最后更新时间
+        completed_at:
+          type: string
+          format: date-time
+          description: 任务完成时间
+          nullable: true
+        file_count:
+          type: integer
+          description: 输入文件数量
+        error_message:
+          type: string
+          description: 错误消息（失败任务）
+          nullable: true
+      required:
+        - task_id
+        - status
+        - progress
+        - created_at
+        - updated_at
+        - file_count
+
+    TaskActionResponse:
+      type: object
+      properties:
+        task_id:
+          type: string
+          format: uuid
+          description: 任务唯一标识符
+        status:
+          $ref: '#/components/schemas/TaskStatus'
+        message:
+          type: string
+          description: 操作结果消息
+        started_at:
+          type: string
+          format: date-time
+          description: 启动时间
+          nullable: true
+        cancelled_at:
+          type: string
+          format: date-time
+          description: 取消时间
+          nullable: true
+        retried_at:
+          type: string
+          format: date-time
+          description: 重试时间
+          nullable: true
+      required:
+        - task_id
+        - status
+        - message
+
+    TaskDeleteResponse:
+      type: object
+      properties:
+        message:
+          type: string
+          description: 删除结果消息
+        task_id:
+          type: string
+          format: uuid
+          description: 任务唯一标识符
+        files_cleaned:
+          type: boolean
+          description: 文件是否已清理
+      required:
+        - message
+        - task_id
+        - files_cleaned
+
+    TaskStatisticsResponse:
+      type: object
+      properties:
+        total_tasks:
+          type: integer
+          description: 任务总数
+        status_counts:
+          type: object
+          properties:
+            queued:
+              type: integer
+            processing:
+              type: integer
+            completed:
+              type: integer
+            failed:
+              type: integer
+            expired:
+              type: integer
+          description: 各状态任务数量
+        avg_processing_time_seconds:
+          type: number
+          description: 平均处理时间（秒）
+        session_id:
+          type: string
+          description: 会话ID
+      required:
+        - total_tasks
+        - status_counts
+        - avg_processing_time_seconds
+        - session_id
+
+    QueueStatsResponse:
+      type: object
+      properties:
+        queued_tasks:
+          type: integer
+          description: 排队任务数
+        processing_tasks:
+          type: integer
+          description: 处理中任务数
+        completed_tasks_today:
+          type: integer
+          description: 今日完成任务数
+        failed_tasks_today:
+          type: integer
+          description: 今日失败任务数
+        average_processing_time:
+          type: number
+          description: 平均处理时间
+        queue_health:
+          type: string
+          enum: [healthy, degraded, unhealthy]
+          description: 队列健康状态
+      required:
+        - queued_tasks
+        - processing_tasks
+        - completed_tasks_today
+        - failed_tasks_today
+        - average_processing_time
+        - queue_health
+
+    QueueHealthResponse:
+      type: object
+      properties:
+        healthy:
+          type: boolean
+          description: 队列是否健康
+        redis_connection:
+          type: string
+          enum: [ok, error]
+          description: Redis连接状态
+        celery_workers:
+          type: integer
+          description: Celery工作进程数
+        queue_size:
+          type: integer
+          description: 队列大小
+        timestamp:
+          type: string
+          format: date-time
+          description: 检查时间
+        error:
+          type: string
+          description: 错误信息
+          nullable: true
+      required:
+        - healthy
+        - timestamp
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: boolean
+          description: 是否为错误
+        code:
+          type: string
+          description: 错误代码
+        message:
+          type: string
+          description: 错误消息
+      required:
+        - error
+        - code
+        - message
+
+  responses:
+    BadRequest:
+      description: 请求参数错误
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error: true
+            code: "INVALID_FILE_TYPE"
+            message: "Invalid file type. Allowed types: PDF, ZIP"
+
+    Unauthorized:
+      description: 未授权访问
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error: true
+            code: "INVALID_SESSION"
+            message: "Invalid or expired session"
+
+    Forbidden:
+      description: 访问被拒绝
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error: true
+            code: "ACCESS_DENIED"
+            message: "Access denied: Task belongs to different session"
+
+    NotFound:
+      description: 资源不存在
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error: true
+            code: "TASK_NOT_FOUND"
+            message: "Task not found"
+
+    InternalServerError:
+      description: 服务器内部错误
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error: true
+            code: "INTERNAL_SERVER_ERROR"
+            message: "An internal server error occurred"
+
+tags:
+  - name: 会话管理
+    description: 用户会话的创建和管理
+  - name: 系统状态
+    description: 系统健康状态检查
+  - name: 文件上传
+    description: PDF文件和ZIP压缩包上传
+  - name: 任务管理
+    description: 任务状态查询、控制和统计
+  - name: 文件下载
+    description: 处理结果文件的下载和预览
+  - name: 队列管理
+    description: 任务队列的监控和管理

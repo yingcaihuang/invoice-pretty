@@ -306,8 +306,47 @@ docker-compose -f docker-compose.https.yml --env-file .env.https up -d
 docker run --rm -v web-app_storage_data:/data -v $(pwd)/backups:/backup alpine tar czf /backup/storage-$(date +%Y%m%d).tar.gz -C /data .
 ```
 
+## API接口文档
+
+Web发票处理器提供完整的RESTful API接口，支持第三方系统集成：
+
+- **[API规范手册](API_SPECIFICATION.md)** - 完整的API文档和技术规范
+- **[API快速开始](API_QUICK_START.md)** - 5分钟快速上手指南
+
+### API功能特性
+
+- **RESTful设计**：标准的HTTP方法和状态码
+- **会话认证**：基于会话ID的安全认证机制
+- **异步处理**：支持大文件的异步处理和实时状态跟踪
+- **文件管理**：完整的文件上传、处理、下载生命周期
+- **错误处理**：统一的错误响应格式和详细错误码
+- **多语言SDK**：提供Python和JavaScript示例代码
+
+### 快速体验API
+
+```bash
+# 1. 创建会话
+curl -X POST https://your-domain.com/api/session
+
+# 2. 上传PDF文件
+curl -X POST https://your-domain.com/api/upload/ \
+  -H "X-Session-ID: your-session-id" \
+  -F "files=@invoice.pdf"
+
+# 3. 检查处理状态
+curl -X GET https://your-domain.com/api/task/{task-id}/status \
+  -H "X-Session-ID: your-session-id"
+
+# 4. 下载处理结果
+curl -X GET https://your-domain.com/api/download/{task-id}/{filename} \
+  -H "X-Session-ID: your-session-id" \
+  -o result.pdf
+```
+
 ## 相关文档
 
 - [HTTPS部署详细指南](HTTPS.md)
 - [生产环境部署指南](PRODUCTION.md)
 - [快速开始指南](QUICKSTART.md)
+- [API规范手册](API_SPECIFICATION.md)
+- [API快速开始](API_QUICK_START.md)

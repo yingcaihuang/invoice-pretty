@@ -1,0 +1,505 @@
+{
+  "info": {
+    "name": "Web发票处理器 API",
+    "description": "Web发票处理器的完整API接口集合，包含所有端点的示例请求",
+    "version": "1.0.0",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "https://your-domain.com",
+      "description": "API基础URL"
+    },
+    {
+      "key": "sessionId",
+      "value": "",
+      "description": "会话ID，通过创建会话接口获取"
+    },
+    {
+      "key": "taskId",
+      "value": "",
+      "description": "任务ID，通过上传文件接口获取"
+    }
+  ],
+  "item": [
+    {
+      "name": "1. 会话管理",
+      "item": [
+        {
+          "name": "创建会话",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    pm.collectionVariables.set('sessionId', response.session_id);",
+                  "    console.log('会话ID已保存:', response.session_id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/session",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "session"]
+            },
+            "description": "创建新的用户会话，获取会话ID用于后续API调用"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "2. 系统状态",
+      "item": [
+        {
+          "name": "健康检查",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/health",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "health"]
+            },
+            "description": "检查系统健康状态，包括Redis和文件存储服务"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "3. 文件上传",
+      "item": [
+        {
+          "name": "上传PDF文件",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    pm.collectionVariables.set('taskId', response.taskId);",
+                  "    console.log('任务ID已保存:', response.taskId);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-Session-ID",
+                "value": "{{sessionId}}"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "files",
+                  "type": "file",
+                  "src": [],
+                  "description": "选择要上传的PDF文件或ZIP压缩包"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/upload/",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "upload", ""]
+            },
+            "description": "上传PDF文件或ZIP压缩包进行处理"
+          },
+          "response": []
+        },
+        {
+          "name": "获取上传限制",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/upload/limits",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "upload", "limits"]
+            },
+            "description": "获取文件上传的限制信息，包括最大文件大小和支持的文件类型"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "4. 任务管理",
+      "item": [
+        {
+          "name": "获取任务状态",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Session-ID",
+                "value": "{{sessionId}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/task/{{taskId}}/status",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "task", "{{taskId}}", "status"]
+            },
+            "description": "获取指定任务的当前状态和处理进度"
+          },
+          "response": []
+        },
+        {
+          "name": "获取任务详细进度",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Session-ID",
+                "value": "{{sessionId}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/task/{{taskId}}/progress",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "task", "{{taskId}}", "progress"]
+            },
+            "description": "获取任务的实时处理进度和详细信息"
+          },
+          "response": []
+        },
+        {
+          "name": "获取所有任务",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Session-ID",
+                "value": "{{sessionId}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/task/",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "task", ""]
+            },
+            "description": "获取当前会话的所有任务列表"
+          },
+          "response": []
+        },
+        {
+          "name": "按状态筛选任务",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Session-ID",
+                "value": "{{sessionId}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/task/?status=completed",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "task", ""],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "completed",
+                  "description": "任务状态: queued, processing, completed, failed, expired"
+                }
+              ]
+            },
+            "description": "按指定状态筛选任务"
+          },
+          "response": []
+        },
+        {
+          "name": "启动异步处理",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-Session-ID",
+                "value": "{{sessionId}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/task/{{taskId}}/start",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "task", "{{taskId}}", "start"]
+            },
+            "description": "手动启动已排队任务的异步处理"
+          },
+          "response": []
+        },
+        {
+          "name": "取消任务",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-Session-ID",
+                "value": "{{sessionId}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/task/{{taskId}}/cancel",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "task", "{{taskId}}", "cancel"]
+            },
+            "description": "取消正在处理或排队中的任务"
+          },
+          "response": []
+        },
+        {
+          "name": "重试失败任务",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-Session-ID",
+                "value": "{{sessionId}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/task/{{taskId}}/retry",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "task", "{{taskId}}", "retry"]
+            },
+            "description": "重新处理失败的任务"
+          },
+          "response": []
+        },
+        {
+          "name": "删除任务",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "X-Session-ID",
+                "value": "{{sessionId}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/task/{{taskId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "task", "{{taskId}}"]
+            },
+            "description": "删除任务及其相关文件"
+          },
+          "response": []
+        },
+        {
+          "name": "获取任务统计",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Session-ID",
+                "value": "{{sessionId}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/task/statistics",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "task", "statistics"]
+            },
+            "description": "获取当前会话的任务统计信息"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "5. 文件下载",
+      "item": [
+        {
+          "name": "下载处理结果",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Session-ID",
+                "value": "{{sessionId}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/download/{{taskId}}/processed_invoices.pdf",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "download", "{{taskId}}", "processed_invoices.pdf"]
+            },
+            "description": "下载任务处理完成后的结果文件"
+          },
+          "response": []
+        },
+        {
+          "name": "预览文件",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Session-ID",
+                "value": "{{sessionId}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/download/{{taskId}}/processed_invoices.pdf?inline=true",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "download", "{{taskId}}", "processed_invoices.pdf"],
+              "query": [
+                {
+                  "key": "inline",
+                  "value": "true",
+                  "description": "设置为true时在浏览器中预览文件"
+                }
+              ]
+            },
+            "description": "在浏览器中预览文件而不是下载"
+          },
+          "response": []
+        },
+        {
+          "name": "检查文件可用性",
+          "request": {
+            "method": "HEAD",
+            "header": [
+              {
+                "key": "X-Session-ID",
+                "value": "{{sessionId}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/download/{{taskId}}/processed_invoices.pdf",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "download", "{{taskId}}", "processed_invoices.pdf"]
+            },
+            "description": "检查文件是否可用于下载，不返回文件内容"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "6. 队列管理",
+      "item": [
+        {
+          "name": "获取队列统计",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Session-ID",
+                "value": "{{sessionId}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/task/queue/stats",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "task", "queue", "stats"]
+            },
+            "description": "获取任务队列的统计信息"
+          },
+          "response": []
+        },
+        {
+          "name": "队列健康检查",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-Session-ID",
+                "value": "{{sessionId}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/task/queue/health",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "task", "queue", "health"]
+            },
+            "description": "执行队列系统的健康检查"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "7. 调试工具",
+      "item": [
+        {
+          "name": "调试任务文件",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Session-ID",
+                "value": "{{sessionId}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/task/{{taskId}}/debug",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "task", "{{taskId}}", "debug"]
+            },
+            "description": "调试端点，检查任务文件和路径信息"
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// 检查是否需要会话ID",
+          "const needsSession = pm.request.url.path.some(segment => segment === 'task' || segment === 'upload' || segment === 'download');",
+          "if (needsSession && !pm.collectionVariables.get('sessionId')) {",
+          "    console.log('警告: 此请求需要会话ID，请先运行\"创建会话\"请求');",
+          "}"
+        ]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// 通用响应检查",
+          "pm.test('响应状态码正常', function () {",
+          "    pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 204]);",
+          "});",
+          "",
+          "// 检查响应时间",
+          "pm.test('响应时间小于5秒', function () {",
+          "    pm.expect(pm.response.responseTime).to.be.below(5000);",
+          "});",
+          "",
+          "// 检查Content-Type",
+          "if (pm.response.headers.get('Content-Type') && pm.response.headers.get('Content-Type').includes('application/json')) {",
+          "    pm.test('响应格式为JSON', function () {",
+          "        pm.response.to.be.json;",
+          "    });",
+          "}"
+        ]
+      }
+    }
+  ]
+}
