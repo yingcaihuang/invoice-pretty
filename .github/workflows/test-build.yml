@@ -79,15 +79,15 @@ jobs:
         sys.path.insert(0, 'src')
         try:
             from ui.gui_controller import GUIController
-            print('✅ GUI controller import successful')
+            print('[OK] GUI controller import successful')
         except ImportError as e:
-            print(f'⚠️ GUI controller import failed: {e}')
+            print(f'[WARN] GUI controller import failed: {e}')
         
         try:
             from services.pdf_processor import PDFProcessor
-            print('✅ PDF processor import successful')
+            print('[OK] PDF processor import successful')
         except ImportError as e:
-            print(f'⚠️ PDF processor import failed: {e}')
+            print(f'[WARN] PDF processor import failed: {e}')
         "
 
   # 测试macOS构建
@@ -120,15 +120,15 @@ jobs:
         sys.path.insert(0, 'src')
         try:
             from ui.gui_controller import GUIController
-            print('✅ GUI controller import successful')
+            print('[OK] GUI controller import successful')
         except ImportError as e:
-            print(f'⚠️ GUI controller import failed: {e}')
+            print(f'[WARN] GUI controller import failed: {e}')
         
         try:
             from services.pdf_processor import PDFProcessor
-            print('✅ PDF processor import successful')
+            print('[OK] PDF processor import successful')
         except ImportError as e:
-            print(f'⚠️ PDF processor import failed: {e}')
+            print(f'[WARN] PDF processor import failed: {e}')
         "
 
   # 兼容性测试
