@@ -49,6 +49,10 @@ def send_teams_notification():
     elif status.lower() == 'cancelled':
         status_color = "Warning"
         status_icon = "⚠️"
+    elif status.lower() == 'waiting for approval':
+        status_color = "Warning"
+        status_icon = "⏳"
+        status = "Waiting for Approval"
 
     current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
