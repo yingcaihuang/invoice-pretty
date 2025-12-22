@@ -38,24 +38,36 @@ def send_teams_notification():
     version = os.getenv('RELEASE_VERSION', github_ref)
     
     # Determine color and icon based on status
-    status_color = "Accent"
-    status_icon = "🚀"
-    card_title = f"{status_icon} {github_workflow}"
+    # Allow overriding via environment variables
+    status_color = os.getenv('STATUS_COLOR', "Accent")
+    status_icon = os.getenv('STATUS_ICON', "🚀")
+    card_title = os.getenv('CARD_TITLE', f"{status_icon} {github_workflow}")
     
-    if status.lower() == 'success':
-        status_color = "Good"
-        status_icon = "✅"
-    elif status.lower() == 'failure':
-        status_color = "Attention"
-        status_icon = "❌"
-    elif status.lower() == 'cancelled':
-        status_color = "Warning"
-        status_icon = "⚠️"
-    elif status.lower() == 'waiting for approval':
-        status_color = "Attention"
-        status_icon = "📢"
-        status = "Waiting for Approval"
-        card_title = "⚠️ Approval Required"
+    if not os.getenv('STATUS_COLOR'): # Only apply default logic if not overridden
+        if status.lower() == 'success':
+            status_color = "Good"
+            status_icon = "✅"
+        elif status.lower() == 'failure':
+            status_color = "Attention"
+            status_icon = "❌"
+        elif status.lower() == 'cancelled':
+            status_color = "Warning"
+            status_icon = "⚠️"
+        elif status.lower() == 'waiting for approval':
+            status_color = "Attention"
+            status_icon = "📢"
+            status = "Waiting for Approval"
+            card_title = "⚠️ Approval Required"
+        elif status.lower() == 'deployment approved':
+            status_color = "Good"
+            status_icon = "✅"
+            status = "Approved"
+            card_title = "✅ Deployment Approved"
+        elif status.lower() == 'deployment rejected':
+            status_color = "Attention"
+            status_icon = "🚫"
+            status = "Rejected"
+            card_title = "🚫 Deployment Rejected"
 
     current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
