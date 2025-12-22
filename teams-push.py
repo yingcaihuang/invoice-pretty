@@ -47,12 +47,15 @@ def send_teams_notification():
         if status.lower() == 'success':
             status_color = "Good"
             status_icon = "✅"
+            status = "Success"
         elif status.lower() == 'failure':
             status_color = "Attention"
             status_icon = "❌"
+            status = "Failure"
         elif status.lower() == 'cancelled':
             status_color = "Warning"
             status_icon = "⚠️"
+            status = "Cancelled"
         elif status.lower() == 'waiting for approval':
             status_color = "Attention"
             status_icon = "📢"
@@ -143,7 +146,7 @@ def send_teams_notification():
                                         },
                                         {
                                             "title": "🚦 Status",
-                                            "value": status
+                                            "value": f"{status_icon} {status}"
                                         },
                                         {
                                             "title": "🏷️ Version/Ref",
