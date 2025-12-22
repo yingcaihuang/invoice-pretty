@@ -28,6 +28,8 @@ def send_teams_notification():
 
     # Construct Workflow Run URL
     workflow_run_url = f"{github_server_url}/{github_repository}/actions/runs/{github_run_id}"
+    # Construct Repository URL
+    repository_url = f"{github_server_url}/{github_repository}"
 
     # Get custom status/version if provided via env vars
     # 可以在 workflow step 中设置: env: WORKFLOW_STATUS: 'Success'
@@ -101,7 +103,7 @@ def send_teams_notification():
                         },
                         {
                             "type": "TextBlock",
-                            "text": f"Repository: {github_repository}",
+                            "text": f"Repository: [{github_repository}]({repository_url})",
                             "isSubtle": True,
                             "spacing": "None",
                             "size": "Small"
@@ -113,6 +115,10 @@ def send_teams_notification():
                                 {
                                     "type": "FactSet",
                                     "facts": [
+                                        {
+                                            "title": "Repository",
+                                            "value": f"[{github_repository}]({repository_url})"
+                                        },
                                         {
                                             "title": "Status",
                                             "value": status
