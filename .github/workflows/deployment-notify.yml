@@ -3,10 +3,17 @@ name: Deployment Notification
 on:
   deployment_status:
 
+concurrency:
+  group: notify-${{ github.event.deployment.id }}-${{ github.event.deployment_status.state }}
+  cancel-in-progress: true
+
 jobs:
   notify-deployment:
     # 只处理 in_progress (Approved) 和 failure (Rejected/Failed)
-    if: github.event.deployment_status.state == 'in_progress' || github.event.deployment_status.state == 'failure'
+    # 并且只针对 pro 环境发送 Approved 通知 (dev 环境自动批准无需通知)
+    if: |
+      (github.event.deployment_status.state == 'in_progress' && github.event.deployment.environment == 'pro') || 
+      github.event.deployment_status.state == 'failure'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
