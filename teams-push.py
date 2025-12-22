@@ -40,6 +40,8 @@ def send_teams_notification():
     # Determine color and icon based on status
     status_color = "Accent"
     status_icon = "🚀"
+    card_title = f"{status_icon} {github_workflow}"
+    
     if status.lower() == 'success':
         status_color = "Good"
         status_icon = "✅"
@@ -50,9 +52,10 @@ def send_teams_notification():
         status_color = "Warning"
         status_icon = "⚠️"
     elif status.lower() == 'waiting for approval':
-        status_color = "Warning"
-        status_icon = "⏳"
+        status_color = "Attention"
+        status_icon = "📢"
         status = "Waiting for Approval"
+        card_title = "⚠️ Approval Required"
 
     current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
@@ -100,14 +103,14 @@ def send_teams_notification():
                     "body": [
                         {
                             "type": "TextBlock",
-                            "text": f"{status_icon} {github_workflow}",
+                            "text": card_title,
                             "weight": "Bolder",
                             "size": "Large",
                             "color": status_color
                         },
                         {
                             "type": "TextBlock",
-                            "text": f"Repository: [{github_repository}]({repository_url})",
+                            "text": "Please review and approve the deployment." if status == "Waiting for Approval" else f"Repository: [{github_repository}]({repository_url})",
                             "isSubtle": True,
                             "spacing": "None",
                             "size": "Small"
@@ -120,35 +123,35 @@ def send_teams_notification():
                                     "type": "FactSet",
                                     "facts": [
                                         {
-                                            "title": "Repository",
+                                            "title": "📦 Repository",
                                             "value": f"[{github_repository}]({repository_url})"
                                         },
                                         {
-                                            "title": "Status",
+                                            "title": "🚦 Status",
                                             "value": status
                                         },
                                         {
-                                            "title": "Version/Ref",
+                                            "title": "🏷️ Version/Ref",
                                             "value": version
                                         },
                                         {
-                                            "title": "Triggered By",
+                                            "title": "👤 Triggered By",
                                             "value": github_actor
                                         },
                                         {
-                                            "title": "Commit",
+                                            "title": "🔗 Commit",
                                             "value": github_sha
                                         },
                                         {
-                                            "title": "Message",
+                                            "title": "📝 Message",
                                             "value": commit_message
                                         },
                                         {
-                                            "title": "Duration",
+                                            "title": "⏱️ Duration",
                                             "value": duration_str
                                         },
                                         {
-                                            "title": "Time",
+                                            "title": "🕒 Time",
                                             "value": current_time
                                         }
                                     ]
