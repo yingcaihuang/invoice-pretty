@@ -17,8 +17,24 @@ env:
   PYTHON_VERSION: '3.11'
 
 jobs:
+  # 确定运行环境
+  setup-env:
+    runs-on: ubuntu-latest
+    outputs:
+      env_name: ${{ steps.set-env.outputs.env_name }}
+    steps:
+      - id: set-env
+        run: |
+          if [[ "${{ github.ref }}" == refs/tags/* ]]; then
+            echo "env_name=pro" >> $GITHUB_OUTPUT
+          else
+            echo "env_name=dev" >> $GITHUB_OUTPUT
+          fi
+
   # Windows构建作业
   build-windows:
+    needs: [setup-env]
+    environment: ${{ needs.setup-env.outputs.env_name }}
     runs-on: windows-latest
     
     steps:
@@ -63,6 +79,8 @@ jobs:
 
   # macOS Intel (x86_64) 构建作业
   build-macos-intel:
+    needs: [setup-env]
+    environment: ${{ needs.setup-env.outputs.env_name }}
     runs-on: macos-15-intel  # Intel-based runner (updated from deprecated macos-13)
     
     steps:
@@ -117,6 +135,8 @@ jobs:
 
   # macOS Apple Silicon (ARM64) 构建作业
   build-macos-arm:
+    needs: [setup-env]
+    environment: ${{ needs.setup-env.outputs.env_name }}
     runs-on: macos-latest  # ARM-based runner (M1/M2)
     
     steps:
@@ -171,7 +191,8 @@ jobs:
 
   # 创建GitHub Release
   create-release:
-    needs: [build-windows, build-macos-intel, build-macos-arm]
+    needs: [setup-env, build-windows, build-macos-intel, build-macos-arm]
+    environment: ${{ needs.setup-env.outputs.env_name }}
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch'
     
@@ -300,12 +321,12 @@ jobs:
           ./macos-arm64-build/invoice_pretty_arm64.dmg
         fail_on_unmatched_files: false
 
-  # 发送通知 - 生产环境 (Tag 推送)
-  notify-pro:
-    needs: [build-windows, build-macos-intel, build-macos-arm, create-release]
+  # 发送通知
+  notify:
+    needs: [setup-env, build-windows, build-macos-intel, build-macos-arm, create-release]
     runs-on: ubuntu-latest
-    if: always() && startsWith(github.ref, 'refs/tags/')
-    environment: pro
+    if: always()
+    environment: ${{ needs.setup-env.outputs.env_name }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -313,52 +334,12 @@ jobs:
       - name: Determine Workflow Status
         id: status
         run: |
+          # 检查所有依赖作业的状态
+          # 注意：create-release 可能因为条件不满足而被跳过，这种情况下它的 result 是 skipped，不应视为 failure
           if [ "${{ needs.build-windows.result }}" == "failure" ] || \
              [ "${{ needs.build-macos-intel.result }}" == "failure" ] || \
              [ "${{ needs.build-macos-arm.result }}" == "failure" ] || \
-             [ "${{ needs.create-release.result }}" == "failure" ]; then
-            echo "status=failure" >> $GITHUB_OUTPUT
-          elif [ "${{ needs.build-windows.result }}" == "cancelled" ] || \
-               [ "${{ needs.build-macos-intel.result }}" == "cancelled" ] || \
-               [ "${{ needs.build-macos-arm.result }}" == "cancelled" ]; then
-            echo "status=cancelled" >> $GITHUB_OUTPUT
-          else
-            echo "status=success" >> $GITHUB_OUTPUT
-          fi
-
-      - name: Get Workflow Start Time
-        id: start_time
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          start_time=$(gh run view ${{ github.run_id }} --repo ${{ github.repository }} --json createdAt -q .createdAt)
-          echo "start_time=$start_time" >> $GITHUB_OUTPUT
-
-      - name: Send Teams Notification
-        env:
-          TEAMS_URL: ${{ secrets.TEAMS_URL }}
-          WORKFLOW_STATUS: ${{ steps.status.outputs.status }}
-          RELEASE_VERSION: ${{ github.ref_name }}
-          COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
-          WORKFLOW_START_TIME: ${{ steps.start_time.outputs.start_time }}
-        run: python teams-push.py
-
-  # 发送通知 - 开发环境 (分支推送)
-  notify-dev:
-    needs: [build-windows, build-macos-intel, build-macos-arm]
-    runs-on: ubuntu-latest
-    if: always() && !startsWith(github.ref, 'refs/tags/')
-    environment: dev
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Determine Workflow Status
-        id: status
-        run: |
-          if [ "${{ needs.build-windows.result }}" == "failure" ] || \
-             [ "${{ needs.build-macos-intel.result }}" == "failure" ] || \
-             [ "${{ needs.build-macos-arm.result }}" == "failure" ]; then
+             ([ "${{ needs.create-release.result }}" == "failure" ] && [ "${{ needs.create-release.result }}" != "skipped" ]); then
             echo "status=failure" >> $GITHUB_OUTPUT
           elif [ "${{ needs.build-windows.result }}" == "cancelled" ] || \
                [ "${{ needs.build-macos-intel.result }}" == "cancelled" ] || \
