@@ -4,6 +4,8 @@ on:
   push:
     tags:
       - 'v*'  # 当推送版本标签时触发
+    branches:
+      - 'feature/web-application'
   workflow_dispatch:  # 允许手动触发
     inputs:
       version:
@@ -171,6 +173,7 @@ jobs:
   create-release:
     needs: [build-windows, build-macos-intel, build-macos-arm]
     runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch'
     
     steps:
     - name: Checkout code
