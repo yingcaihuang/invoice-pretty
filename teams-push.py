@@ -2,7 +2,7 @@ import urllib.request
 import json
 import os
 import sys
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 
 def send_teams_notification():
     # Get Webhook URL from environment variable
@@ -69,7 +69,10 @@ def send_teams_notification():
             status = "Rejected"
             card_title = "🚫 Deployment Rejected"
 
-    current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    # Use UTC+8 for display time
+    utc_now = datetime.now(timezone.utc)
+    cst_now = utc_now + timedelta(hours=8)
+    current_time = cst_now.strftime("%Y-%m-%d %H:%M:%S (CST)")
 
     # Calculate duration if start time is provided
     duration_str = "N/A"
