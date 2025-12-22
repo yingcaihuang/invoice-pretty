@@ -44,9 +44,32 @@ jobs:
           COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
         run: python teams-push.py
 
+  # 通知 Approval 已通过 (仅 Pro 环境)
+  notify-approval:
+    needs: [setup-env]
+    environment: ${{ needs.setup-env.outputs.env_name }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          
+      - name: Send Deployment Approved Notification
+        if: needs.setup-env.outputs.env_name == 'pro'
+        env:
+          TEAMS_URL: ${{ secrets.PRO_TEAMS_URL }}
+          WORKFLOW_STATUS: 'Deployment Approved'
+          RELEASE_VERSION: ${{ github.ref_name }}
+          COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
+        run: python teams-push.py
+
   # Windows构建作业
   build-windows:
-    needs: [setup-env]
+    needs: [setup-env, notify-approval]
     environment: ${{ needs.setup-env.outputs.env_name }}
     runs-on: windows-latest
     
@@ -92,7 +115,7 @@ jobs:
 
   # macOS Intel (x86_64) 构建作业
   build-macos-intel:
-    needs: [setup-env]
+    needs: [setup-env, notify-approval]
     environment: ${{ needs.setup-env.outputs.env_name }}
     runs-on: macos-15-intel  # Intel-based runner (updated from deprecated macos-13)
     
@@ -148,7 +171,7 @@ jobs:
 
   # macOS Apple Silicon (ARM64) 构建作业
   build-macos-arm:
-    needs: [setup-env]
+    needs: [setup-env, notify-approval]
     environment: ${{ needs.setup-env.outputs.env_name }}
     runs-on: macos-latest  # ARM-based runner (M1/M2)
     
