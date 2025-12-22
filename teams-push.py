@@ -23,6 +23,9 @@ def send_teams_notification():
     github_ref = os.getenv('GITHUB_REF', 'unknown ref')
     github_sha = os.getenv('GITHUB_SHA', 'unknown sha')[:7]
     
+    # Get commit message
+    commit_message = os.getenv('COMMIT_MESSAGE', 'No commit message provided')
+
     # Construct Workflow Run URL
     workflow_run_url = f"{github_server_url}/{github_repository}/actions/runs/{github_run_id}"
 
@@ -46,6 +49,34 @@ def send_teams_notification():
         status_icon = "⚠️"
 
     current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+    # Calculate duration if start time is provided
+    duration_str = "N/A"
+    start_time_str = os.getenv('WORKFLOW_START_TIME')
+    if start_time_str:
+        try:
+            # Parse ISO 8601 format (e.g., 2023-10-27T10:00:00Z)
+            # Python 3.11 supports fromisoformat for Z suffix, but for safety with older versions:
+            if start_time_str.endswith('Z'):
+                start_time_str = start_time_str[:-1]
+            
+            start_time = datetime.fromisoformat(start_time_str)
+            end_time = datetime.utcnow()
+            duration = end_time - start_time
+            
+            # Format duration
+            total_seconds = int(duration.total_seconds())
+            hours, remainder = divmod(total_seconds, 3600)
+            minutes, seconds = divmod(remainder, 60)
+            
+            if hours > 0:
+                duration_str = f"{hours}h {minutes}m {seconds}s"
+            elif minutes > 0:
+                duration_str = f"{minutes}m {seconds}s"
+            else:
+                duration_str = f"{seconds}s"
+        except Exception as e:
+            print(f"Error calculating duration: {e}")
 
     # Adaptive Card
     card = {
@@ -97,6 +128,14 @@ def send_teams_notification():
                                         {
                                             "title": "Commit",
                                             "value": github_sha
+                                        },
+                                        {
+                                            "title": "Message",
+                                            "value": commit_message
+                                        },
+                                        {
+                                            "title": "Duration",
+                                            "value": duration_str
                                         },
                                         {
                                             "title": "Time",

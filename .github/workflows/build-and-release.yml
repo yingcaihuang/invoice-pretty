@@ -326,9 +326,19 @@ jobs:
             echo "status=success" >> $GITHUB_OUTPUT
           fi
 
+      - name: Get Workflow Start Time
+        id: start_time
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          start_time=$(gh run view ${{ github.run_id }} --repo ${{ github.repository }} --json createdAt -q .createdAt)
+          echo "start_time=$start_time" >> $GITHUB_OUTPUT
+
       - name: Send Teams Notification
         env:
           TEAMS_URL: ${{ secrets.TEAMS_URL }}
           WORKFLOW_STATUS: ${{ steps.status.outputs.status }}
           RELEASE_VERSION: ${{ github.ref_name }}
+          COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
+          WORKFLOW_START_TIME: ${{ steps.start_time.outputs.start_time }}
         run: python teams-push.py
