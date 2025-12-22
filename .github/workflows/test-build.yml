@@ -157,9 +157,35 @@ jobs:
       run: |
         python test_compatibility.py
 
-    - name: Send Teams Notification
-      if: always()
-      env:
-        TEAMS_URL: ${{ secrets.TEAMS_URL }}
-        WORKFLOW_STATUS: ${{ job.status }}
-      run: python teams-push.py
+  # 发送通知 (无论成功失败)
+  notify:
+    needs: [test, test-windows-build, test-macos-build, compatibility-test]
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Determine Workflow Status
+        id: status
+        run: |
+          if [ "${{ needs.test.result }}" == "failure" ] || \
+             [ "${{ needs.test-windows-build.result }}" == "failure" ] || \
+             [ "${{ needs.test-macos-build.result }}" == "failure" ] || \
+             [ "${{ needs.compatibility-test.result }}" == "failure" ]; then
+            echo "status=failure" >> $GITHUB_OUTPUT
+          elif [ "${{ needs.test.result }}" == "cancelled" ] || \
+               [ "${{ needs.test-windows-build.result }}" == "cancelled" ] || \
+               [ "${{ needs.test-macos-build.result }}" == "cancelled" ] || \
+               [ "${{ needs.compatibility-test.result }}" == "cancelled" ]; then
+            echo "status=cancelled" >> $GITHUB_OUTPUT
+          else
+            echo "status=success" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Send Teams Notification
+        env:
+          TEAMS_URL: ${{ secrets.TEAMS_URL }}
+          WORKFLOW_STATUS: ${{ steps.status.outputs.status }}
+          RELEASE_VERSION: ${{ github.ref_name }}
+        run: python teams-push.py
