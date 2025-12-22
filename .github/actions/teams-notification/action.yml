@@ -1,0 +1,62 @@
+name: 'Teams Notification'
+description: 'Send rich Adaptive Cards notifications to Microsoft Teams'
+author: 'yingcaihuang'
+branding:
+  icon: 'message-square'
+  color: 'blue'
+
+inputs:
+  webhook_url:
+    description: 'Microsoft Teams Webhook URL'
+    required: true
+  status:
+    description: 'Workflow status (Success, Failure, Cancelled, etc.)'
+    required: false
+    default: 'Success'
+  version:
+    description: 'Release version or tag'
+    required: false
+  message:
+    description: 'Custom message or commit message'
+    required: false
+  title:
+    description: 'Card title'
+    required: false
+  color:
+    description: 'Card accent color (Good, Attention, Warning, Accent)'
+    required: false
+  icon:
+    description: 'Status icon (e.g. ✅, ❌)'
+    required: false
+  start_time:
+    description: 'Workflow start time for duration calculation'
+    required: false
+
+runs:
+  using: "composite"
+  steps:
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+    
+    - name: Send Notification
+      shell: bash
+      env:
+        TEAMS_URL: ${{ inputs.webhook_url }}
+        WORKFLOW_STATUS: ${{ inputs.status }}
+        RELEASE_VERSION: ${{ inputs.version }}
+        COMMIT_MESSAGE: ${{ inputs.message }}
+        CARD_TITLE: ${{ inputs.title }}
+        STATUS_COLOR: ${{ inputs.color }}
+        STATUS_ICON: ${{ inputs.icon }}
+        WORKFLOW_START_TIME: ${{ inputs.start_time }}
+        # Pass through GitHub context automatically
+        GITHUB_SERVER_URL: ${{ github.server_url }}
+        GITHUB_REPOSITORY: ${{ github.repository }}
+        GITHUB_RUN_ID: ${{ github.run_id }}
+        GITHUB_WORKFLOW: ${{ github.workflow }}
+        GITHUB_ACTOR: ${{ github.actor }}
+        GITHUB_REF: ${{ github.ref }}
+        GITHUB_SHA: ${{ github.sha }}
+      run: python ${{ github.action_path }}/teams-push.py
