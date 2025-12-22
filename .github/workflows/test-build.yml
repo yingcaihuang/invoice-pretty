@@ -156,3 +156,10 @@ jobs:
     - name: Test compatibility
       run: |
         python test_compatibility.py
+
+    - name: Send Teams Notification
+      if: always()
+      env:
+        TEAMS_URL: ${{ secrets.TEAMS_URL }}
+        WORKFLOW_STATUS: ${{ job.status }}
+      run: python teams-push.py

@@ -296,3 +296,11 @@ jobs:
           ./macos-intel-build/invoice_pretty_intel.dmg
           ./macos-arm64-build/invoice_pretty_arm64.dmg
         fail_on_unmatched_files: false
+
+    - name: Send Teams Notification
+      if: always()
+      env:
+        TEAMS_URL: ${{ secrets.TEAMS_URL }}
+        WORKFLOW_STATUS: ${{ job.status }}
+        RELEASE_VERSION: ${{ steps.get_version.outputs.version }}
+      run: python teams-push.py
