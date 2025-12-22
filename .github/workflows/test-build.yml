@@ -162,6 +162,7 @@ jobs:
     needs: [test, test-windows-build, test-macos-build, compatibility-test]
     runs-on: ubuntu-latest
     if: always()
+    environment: dev
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
