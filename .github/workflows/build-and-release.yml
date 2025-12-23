@@ -36,7 +36,7 @@ jobs:
 
       - name: Send Approval Notification
         if: steps.set-env.outputs.env_name == 'pro'
-        uses: ./.github/actions/teams-notification
+        uses: yingcaihuang/teams-notification-action@v1
         with:
           webhook_url: ${{ secrets.PRO_TEAMS_URL }}
           status: 'Waiting for Approval'
@@ -54,7 +54,7 @@ jobs:
           
       - name: Send Deployment Approved Notification
         if: needs.setup-env.outputs.env_name == 'pro'
-        uses: ./.github/actions/teams-notification
+        uses: yingcaihuang/teams-notification-action@v1
         with:
           webhook_url: ${{ secrets.PRO_TEAMS_URL }}
           status: 'Deployment Approved'
@@ -401,7 +401,7 @@ jobs:
           echo "start_time=$start_time" >> $GITHUB_OUTPUT
 
       - name: Send Teams Notification
-        uses: ./.github/actions/teams-notification
+        uses: yingcaihuang/teams-notification-action@v1
         with:
           webhook_url: ${{ secrets.TEAMS_URL }}
           status: ${{ steps.status.outputs.status }}
